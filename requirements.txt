@@ -6,3 +6,4 @@ packaging==25.0
 sqlparse==0.6.0
 tzdata==2026.3
 dotenv
+psycopg2-binary
