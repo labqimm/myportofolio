@@ -9,7 +9,7 @@ class MainTest(TestCase):
             title="Staff Akademi Profesi",
             description="Membantu akademik dan persiapan karir mahasiswa Fasilkom UI.",
             category="volunteer",
-        )
+        ) 
 
     def test_main_url_is_accessible(self):
         response = self.client.get(reverse("main:show_main"))
