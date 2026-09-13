@@ -305,6 +305,62 @@ h1, .brand {
     font-weight: 600;
 }
 
+.projects {
+    padding: 3rem 0 4.5rem;
+    border-top: 1px solid var(--line);
+}
+
+.project-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.project-card {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    background-color: #fff;
+}
+
+.project-card-featured {
+    border-color: var(--accent);
+    border-width: 2px;
+}
+
+.project-year {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+}
+
+.project-title {
+    font-family: "Space Grotesk", -apple-system, sans-serif;
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+
+.project-desc {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin-bottom: 0.75rem;
+}
+
+.project-tech {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.empty-state {
+    color: var(--text-muted);
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+    padding: 2rem;
+    text-align: center;
+}
+
 @media (max-width: 600px) {
     .hero-grid {
         grid-template-columns: 1fr;
