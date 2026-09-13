@@ -49,3 +49,34 @@ class MainTest(TestCase):
         self.assertFalse(self.experience.is_ongoing)
         self.assertContains(response, "Selesai")
         self.assertNotContains(response, "Sedang berlangsung")
+
+
+from django.test import TestCase
+from django.urls import reverse
+
+from main.models import Project
+
+
+class ProjectListViewTest(TestCase):
+    url = reverse('main:project_list')
+
+    def test_url_accessible_and_uses_correct_template(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'project_list.html')
+
+    def test_existing_projects_are_rendered(self):
+        Project.objects.create(
+            title='Sistem Absensi Kelas',
+            description='Aplikasi pencatatan kehadiran berbasis web.',
+            tech_stack='Django, PostgreSQL',
+            year=2026,
+        )
+        response = self.client.get(self.url)
+        self.assertContains(response, 'Sistem Absensi Kelas')
+        self.assertContains(response, 'Django, PostgreSQL')
+
+    def test_empty_state_is_shown_when_no_projects(self):
+        self.assertEqual(Project.objects.count(), 0)
+        response = self.client.get(self.url)
+        self.assertContains(response, 'Belum ada proyek yang ditambahkan.')
