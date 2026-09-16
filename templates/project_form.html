@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="projects">
+    <div class="container">
+        <p class="section-kicker">Portfolio</p>
+        <h2 class="section-title">Tambah Project</h2>
+        <form method="post" action="{% url 'main:create_project' %}" class="project-form">
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% for error in field.errors %}
+                <p class="form-error">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endfor %}
+            <button type="submit" class="button">Simpan Project</button>
+            <a href="{% url 'main:project_list' %}" class="button button-secondary">Batal</a>
+        </form>
+    </div>
+</section>
+{% endblock content %}

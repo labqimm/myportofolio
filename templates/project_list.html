@@ -3,8 +3,19 @@
 {% block content %}
 <section class="projects">
     <div class="container">
-        <p class="section-kicker">Portfolio</p>
-        <h2 class="section-title">Projects</h2>
+        <div class="project-header">
+            <div>
+                <p class="section-kicker">Portfolio</p>
+                <h2 class="section-title">Projects</h2>
+            </div>
+            <a href="{% url 'main:create_project' %}" class="button project-add-button">+ Tambah Proyek</a>
+        </div>
+
+        <form method="get" action="{% url 'main:project_list' %}" class="project-search">
+            <input type="search" name="title" value="{{ title_query }}"
+                placeholder="Cari berdasarkan nama proyek" class="project-search__input">
+            <button type="submit" class="button">Cari</button>
+        </form>
 
         {% if projects %}
         <div class="project-grid">
@@ -17,11 +28,14 @@
                 {% if project.repo_url %}
                 <a class="social-link" href="{{ project.repo_url }}">Repository</a>
                 {% endif %}
+                {% include "components/project_delete_modal.html" with project=project %}
             </article>
             {% endfor %}
         </div>
         {% else %}
-        <p class="empty-state">Belum ada proyek yang ditambahkan.</p>
+        <p class="empty-state">
+            {% if title_query %}Tidak ada proyek dengan nama tersebut.{% else %}Belum ada proyek yang ditambahkan.{% endif %}
+        </p>
         {% endif %}
     </div>
 </section>

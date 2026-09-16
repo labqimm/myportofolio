@@ -31,7 +31,7 @@ SECRET_KEY = 'django-insecure-np!$o&(yyh_d+saz01(zb4nrcw%p=h1338fp17b7b)^cpwzqxa
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 ALLOWED_HOSTS = ["localhost", "127.0.0.1","muhammad-iqbal517-myportofolio.pws.cs.ui.ac.id"]
-
+CSRF_TRUSTED_ORIGINS = ["https://muhammad-iqbal517-myportofolio.pws.cs.ui.ac.id"]
 
 
 # Application definition
