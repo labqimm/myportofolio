@@ -26,27 +26,36 @@
 </section>
 <section class="education" id="education">
     <div class="container">
-        <p class="section-kicker">Riwayat Pendidikan</p>
-        <h2 class="section-title">Education</h2>
-        <div class="timeline">
-            <article class="timeline-item">
-                <span class="timeline-dot timeline-dot-active"></span>
-                <p class="timeline-period"><time datetime="2025">2025</time> &mdash; sekarang</p>
-                <h3 class="timeline-institution">Universitas Indonesia</h3>
-                <p class="timeline-detail">S1 Ilmu Komputer</p>
-            </article>
-            <article class="timeline-item">
-                <span class="timeline-dot"></span>
-                <p class="timeline-period"><time datetime="2022">2022</time> &mdash; <time datetime="2025">2025</time></p>
-                <h3 class="timeline-institution">SMA Negeri 11 Kota Bekasi</h3>
-                <p class="timeline-detail">Jurusan IPA</p>
-            </article>
-            <article class="timeline-item">
-                <span class="timeline-dot"></span>
-                <p class="timeline-period"><time datetime="2019">2019</time> &mdash; <time datetime="2022">2022</time></p>
-                <h3 class="timeline-institution">SMP Shidqia Islamic School</h3>
-            </article>
+        <div class="project-header">
+            <div>
+                <p class="section-kicker">Riwayat Pendidikan</p>
+                <h2 class="section-title">Education</h2>
+            </div>
+            <a href="{% url 'main:create_education' %}" class="button">+ Tambah Pendidikan</a>
         </div>
+        {% if educations %}
+        <div class="timeline">
+            {% for education in educations %}
+            <article class="timeline-item">
+                <span class="timeline-dot{% if education.is_ongoing %} timeline-dot-active{% endif %}"></span>
+                <p class="timeline-period">
+                    <time datetime="{{ education.start_year }}">{{ education.start_year }}</time> &mdash;
+                    {% if education.is_ongoing %}sekarang{% else %}<time datetime="{{ education.end_year }}">{{ education.end_year }}</time>{% endif %}
+                </p>
+                <h3 class="timeline-institution">{{ education.institution }}</h3>
+                <p class="timeline-detail">
+                    {{ education.get_level_display }}{% if education.major %} &middot; {{ education.major }}{% endif %}
+                </p>
+                <div class="timeline-actions">
+                    <a href="{% url 'main:update_education' education.id %}" class="button button-secondary button-small">Edit</a>
+                    {% include "components/education_delete_modal.html" with education=education %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-state">Belum ada riwayat pendidikan yang ditambahkan.</p>
+        {% endif %}
     </div>
 </section>
 {% endblock content %}

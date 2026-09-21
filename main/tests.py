@@ -80,3 +80,73 @@ class ProjectListViewTest(TestCase):
         self.assertEqual(Project.objects.count(), 0)
         response = self.client.get(self.url)
         self.assertContains(response, 'Belum ada proyek yang ditambahkan.')
+
+import json
+
+from main.models import Education
+
+
+class EducationCrudTest(TestCase):
+    def setUp(self):
+        self.education = Education.objects.create(
+            institution="Universitas Indonesia",
+            level="s1",
+            major="S1 Ilmu Komputer",
+            start_year=2025,
+        )
+
+    def test_education_shown_on_main_page(self):
+        response = self.client.get(reverse("main:show_main"))
+        self.assertContains(response, "Universitas Indonesia")
+        self.assertContains(response, "sekarang")
+
+    def test_create_education(self):
+        response = self.client.post(reverse("main:create_education"), {
+            "institution": "SMA Negeri 11 Kota Bekasi",
+            "level": "sma",
+            "major": "Jurusan IPA",
+            "start_year": 2022,
+            "end_year": 2025,
+        })
+        self.assertRedirects(response, reverse("main:show_main"))
+        self.assertTrue(Education.objects.filter(institution="SMA Negeri 11 Kota Bekasi").exists())
+
+    def test_update_education(self):
+        url = reverse("main:update_education", args=[self.education.id])
+        # Halaman edit terisi data lama
+        self.assertContains(self.client.get(url), "Universitas Indonesia")
+        self.client.post(url, {
+            "institution": "Universitas Indonesia",
+            "level": "s1",
+            "major": "S1 Sistem Informasi",
+            "start_year": 2025,
+            "end_year": 2029,
+        })
+        self.education.refresh_from_db()
+        self.assertEqual(self.education.major, "S1 Sistem Informasi")
+        self.assertEqual(Education.objects.count(), 1)  # diubah, bukan ditambah
+
+    def test_end_year_before_start_year_is_rejected(self):
+        response = self.client.post(reverse("main:create_education"), {
+            "institution": "Tes", "level": "s1", "start_year": 2025, "end_year": 2020,
+        })
+        self.assertContains(response, "Tahun lulus tidak boleh sebelum tahun masuk.")
+
+    def test_delete_education(self):
+        self.client.post(reverse("main:delete_education", args=[self.education.id]))
+        self.assertFalse(Education.objects.exists())
+
+    def test_delete_with_get_does_nothing(self):
+        self.client.get(reverse("main:delete_education", args=[self.education.id]))
+        self.assertTrue(Education.objects.exists())
+
+    def test_education_json(self):
+        response = self.client.get(reverse("main:get_education_json"))
+        self.assertEqual(response["Content-Type"], "application/json")
+        data = json.loads(response.content)
+        self.assertEqual(data[0]["fields"]["institution"], "Universitas Indonesia")
+
+    def test_experience_json(self):
+        response = self.client.get(reverse("main:get_experience_json"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(response.content), [])
