@@ -51,3 +51,24 @@ Saya memberikan file agar AI memahami konteks dalam mengerjakan tugas tugasnya l
 Bagian yang saya kerjakan Sendiri:
 Saya mengubah file yang diarahkan dan melakukan makemigrate dan migration untuk template 
 
+Link Chat AI: https://claude.ai/share/c5aa6d61-2e5a-4b1a-953b-c421088fcf75
+
+[TUGAS 3]
+1. ModelForm dipakai karena form dibuat otomatis dari model, sehingga field, tipe input, dan validasinya (misalnya angka wajib angka, panjang maksimal teks) langsung mengikuti model. Kalau form HTML dibuat manual, kita harus menulis setiap input dan mengecek datanya satu per satu, dan kalau model berubah, form juga harus diubah manual. Dengan ModelForm, data yang sudah valid cukup disimpan dengan form.save(), bahkan untuk update cukup menambahkan instance=. {% csrf_token %} wajib ditambahkan untuk mencegah serangan CSRF (Cross-Site Request Forgery), yaitu ketika website lain diam-diam mengirim request POST ke website kita atas nama pengguna. Token ini berupa kode acak yang hanya diketahui halaman kita, sehingga Django menolak request POST yang tidak membawa token yang benar.
+
+2. JSON lebih disukai karena formatnya lebih ringkas dan mudah dibaca manusia, ukuran datanya lebih kecil daripada XML yang harus membuka dan menutup tag untuk setiap data, dan strukturnya (objek dan array) sama dengan objek di JavaScript sehingga bisa langsung dipakai di browser tanpa parsing yang rumit. Hampir semua bahasa pemrograman dan API modern juga sudah mendukung JSON secara bawaan.
+
+3. Saat membuka /api/education/, request masuk ke urls.py lalu diteruskan ke view get_education_json. View mengambil data dari database lewat Education.objects.all() (hasilnya berupa objek Python), lalu serializers.serialize("json", ...) mengubahnya menjadi teks JSON, dan hasilnya dikirim dengan HttpResponse ber-content_type application/json. Serialization diperlukan karena objek model Django hanya dimengerti oleh Python dan tidak bisa langsung dikirim lewat internet; data harus diubah dulu menjadi teks dengan format standar agar bisa dibaca aplikasi lain (browser, aplikasi mobile, dll). Di halaman utama prosesnya dibalik: JSON dideserialisasi kembali menjadi objek Education lalu ditampilkan di template.
+
+AI Disclosure:
+
+Tools yang digunakan: Claude (Anthropic)
+
+Bagian yang dibantu AI: AI membantu membuat model dan ModelForm Education, view create/update/delete/JSON, template form dan modal hapus, refactor experience.html, unit test, serta draft jawaban pertanyaan reflektif.
+
+Strategi Prompting: Saya memberikan file soal dan seluruh file proyek terbaru (termasuk link commit GitHub) agar AI memahami kode Tutorial 03 saya, lalu meminta AI bertanya dulu jika ada konteks yang kurang sebelum mengerjakan.
+
+Bagian yang saya kerjakan sendiri: Memilih bagian Education, menjalankan migrasi, mengisi ulang data pendidikan lewat form, mengecek hasilnya di browser, dan melakukan commit bertahap.
+
+LINK CHAT AI: https://claude.ai/share/11e0fbad-a6c4-4a0a-8f8e-9172425a265a
+
