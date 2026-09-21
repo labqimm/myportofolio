@@ -39,3 +39,34 @@ class Project(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class Education(models.Model):
+    """Satu riwayat pendidikan yang tampil di timeline halaman utama."""
+
+    LEVEL_CHOICES = [
+        ('sd', 'SD'),
+        ('smp', 'SMP'),
+        ('sma', 'SMA/SMK'),
+        ('d3', 'D3'),
+        ('s1', 'S1'),
+        ('s2', 'S2'),
+    ]
+
+    institution = models.CharField(max_length=150)
+    level = models.CharField(max_length=10, choices=LEVEL_CHOICES, default='s1')
+    major = models.CharField(max_length=100, blank=True)
+    start_year = models.PositiveIntegerField()
+    end_year = models.PositiveIntegerField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-start_year']
+
+    def __str__(self):
+        return self.institution
+
+    @property
+    def is_ongoing(self):
+        """Pendidikan dianggap masih berjalan kalau tahun selesai belum diisi."""
+        return self.end_year is None
