@@ -561,3 +561,32 @@ h1, .brand {
         text-align: center;
     }
 }
+/* Tugas 3 — Education CRUD & flash message */
+.form-group select {
+    width: 100%;
+    padding: 0.7rem;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    background: #fff;
+    font: inherit;
+}
+
+.timeline-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+}
+
+.button-small {
+    padding: 0.35rem 0.8rem;
+    font-size: 0.8rem;
+}
+
+.flash-message {
+    margin-top: 1.25rem;
+    padding: 0.75rem 1rem;
+    border-left: 4px solid var(--accent);
+    background: #fff;
+    border-radius: var(--radius);
+    font-weight: 600;
+}

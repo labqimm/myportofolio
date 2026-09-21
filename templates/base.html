@@ -25,6 +25,13 @@
     </header>
 
     <main>
+    {% if messages %}
+        <div class="container">
+            {% for message in messages %}
+            <p class="flash-message">{{ message }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% block content %}
         {% endblock content %}
     </main>
