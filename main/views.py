@@ -8,6 +8,7 @@ from django.core import serializers
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from main.forms import EducationForm, ProjectForm
 from main.models import Education, Experience, Project
 from main.roles import can_edit
@@ -225,3 +226,18 @@ def delete_education(request, education_id):
         education.delete()
         messages.success(request, "Riwayat pendidikan berhasil dihapus!")
     return redirect("main:show_main")
+
+
+# Semua akun yang sudah login boleh memberi star (maksimal satu star per akun)
+@login_required(login_url="/login/")
+def toggle_education_star(request, education_id):
+    education = get_object_or_404(Education, pk=education_id)
+
+    if request.method == "POST":
+        if education.starred_by.filter(pk=request.user.pk).exists():
+            education.starred_by.remove(request.user)
+        else:
+            education.starred_by.add(request.user)
+
+    # Kembali ke bagian Education di halaman utama
+    return redirect(reverse("main:show_main") + "#education")

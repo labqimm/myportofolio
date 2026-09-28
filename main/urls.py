@@ -5,6 +5,7 @@ from main.views import (
     create_education, update_education, delete_education,
     get_education_json, get_experience_json,
     register, login_user, logout_user, toggle_star,
+    toggle_education_star,
 )
 
 app_name = "main"
@@ -28,6 +29,7 @@ urlpatterns = [
     path("education/add/", create_education, name="create_education"),
     path("education/<int:education_id>/edit/", update_education, name="update_education"),
     path("education/<int:education_id>/delete/", delete_education, name="delete_education"),
+    path("education/<int:education_id>/star/", toggle_education_star, name="toggle_education_star"),
 
     # JSON API
     path("api/projects/", get_projects_json, name="get_projects_json"),
