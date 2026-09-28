@@ -163,7 +163,10 @@ def get_experience_json(request):
 
 def get_education_json(request):
     """Mengembalikan seluruh data Education dalam format JSON."""
-    education_json = serializers.serialize("json", Education.objects.all())
+    # Natural key: starred_by berisi username, bukan id internal user
+    education_json = serializers.serialize(
+        "json", Education.objects.all(), use_natural_foreign_keys=True
+    )
     return HttpResponse(education_json, content_type="application/json")
 
 
