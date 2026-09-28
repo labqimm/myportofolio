@@ -134,6 +134,20 @@ def delete_project(request, project_id):
         messages.success(request, "Project berhasil dihapus!")
     return redirect("main:project_list")
 
+# Tanpa cek is_superuser: semua akun yang sudah login boleh memberi star
+@login_required(login_url="/login/")
+def toggle_star(request, project_id):
+    project = get_object_or_404(Project, pk=project_id)
+
+    if request.method == "POST":
+        # Kalau akun ini sudah pernah memberi star, batalkan star-nya. Kalau belum, tambahkan.
+        if project.starred_by.filter(pk=request.user.pk).exists():
+            project.starred_by.remove(request.user)
+        else:
+            project.starred_by.add(request.user)
+
+    return redirect("main:project_list")
+
 # ---------- Experience (JSON) ----------
 
 def get_experience_json(request):

@@ -32,9 +32,12 @@
                 {% if project.repo_url %}
                 <a class="social-link" href="{{ project.repo_url }}">Repository</a>
                 {% endif %}
-                {% if user.is_superuser %}
-                {% include "components/project_delete_modal.html" with project=project %}
-                {% endif %}
+                <div class="project-actions">
+                    {% include "components/project_star.html" with project=project %}
+                    {% if user.is_superuser %}
+                    {% include "components/project_delete_modal.html" with project=project %}
+                    {% endif %}
+                </div>
             </article>
             {% endfor %}
         </div>
