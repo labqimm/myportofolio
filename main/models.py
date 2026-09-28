@@ -65,6 +65,10 @@ class Education(models.Model):
     start_year = models.PositiveIntegerField()
     end_year = models.PositiveIntegerField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    # Tugas 4: siapa saja yang memberi star pada riwayat pendidikan ini
+    starred_by = models.ManyToManyField(
+        User, related_name="starred_educations", blank=True
+    )
 
     class Meta:
         ordering = ['-start_year']
