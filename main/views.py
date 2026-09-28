@@ -1,3 +1,5 @@
+import datetime
+
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
@@ -8,6 +10,8 @@ from main.forms import EducationForm, ProjectForm
 from main.models import Education, Experience, Project
 
 def show_main(request):
+    # .get() dengan nilai default supaya tidak KeyError kalau cookie belum ada
+    last_login = request.COOKIES.get("last_login", "Belum ada sesi login / Cookie tidak ditemukan")
     context = {
         "name": "Muhammad Iqbal",
         "npm": "2506657075",
@@ -18,11 +22,12 @@ def show_main(request):
             "students as a teaching assistant across several courses."
         ),
         "educations": get_educations_from_json(request),
+        "last_login": last_login,
     }
     return render(request, "index.html", context)
 
 
-# ---------- Autentikasi ----------
+# ---------- Autentikasi (Tutorial 04) ----------
 
 def register(request):
     """Menampilkan form daftar akun; akun baru disimpan dengan password yang sudah di-hash."""
@@ -45,8 +50,13 @@ def login_user(request):
     form = AuthenticationForm(request, data=request.POST or None)
 
     if request.method == "POST" and form.is_valid():
-        login(request, form.get_user())
-        return redirect("main:show_main")
+        user = form.get_user()
+        login(request, user)
+
+        # Simpan waktu login terakhir di cookie browser (Tutorial 04 Bagian 2)
+        response = redirect("main:show_main")
+        response.set_cookie("last_login", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        return response
 
     context = {
         "name": "Muhammad Iqbal",
@@ -58,7 +68,9 @@ def login_user(request):
 def logout_user(request):
     """Menghapus session pengguna; akunnya tetap ada di database."""
     logout(request)
-    return redirect("main:show_main")
+    response = redirect("main:show_main")
+    response.delete_cookie("last_login")
+    return response
 
 
 def show_experience(request):
