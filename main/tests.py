@@ -83,6 +83,9 @@ class ProjectListViewTest(TestCase):
 
 class EducationCrudTest(TestCase):
     def setUp(self):
+        # Sejak Tugas 4, create/update/delete hanya untuk pemilik -> login sebagai superuser
+        User.objects.create_superuser(username="owner", password="RahasiaKuat123")
+        self.client.login(username="owner", password="RahasiaKuat123")
         self.education = Education.objects.create(
             institution="Universitas Indonesia",
             level="s1",

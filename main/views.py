@@ -10,6 +10,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from main.forms import EducationForm, ProjectForm
 from main.models import Education, Experience, Project
+from main.roles import can_edit
 
 def show_main(request):
     # .get() dengan nilai default supaya tidak KeyError kalau cookie belum ada
@@ -172,7 +173,12 @@ def get_educations_from_json(request):
     return [e.object for e in educations]
 
 
+@login_required(login_url="/login/")
 def create_education(request):
+    # Membuat data baru hanya untuk pemilik portofolio
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     form = EducationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         form.save()
@@ -186,7 +192,12 @@ def create_education(request):
     return render(request, "education_form.html", context)
 
 
+@login_required(login_url="/login/")
 def update_education(request, education_id):
+    # Mengubah data boleh untuk pemilik dan editor
+    if not can_edit(request.user):
+        raise PermissionDenied
+
     # 1. Ambil data lama berdasarkan id
     education = get_object_or_404(Education, pk=education_id)
     # 2. instance=education membuat form terisi data lama, dan save() akan mengubah data itu (bukan membuat baru)
@@ -203,7 +214,12 @@ def update_education(request, education_id):
     return render(request, "education_form.html", context)
 
 
+@login_required(login_url="/login/")
 def delete_education(request, education_id):
+    # Menghapus data hanya untuk pemilik portofolio (editor tidak boleh)
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     education = get_object_or_404(Education, pk=education_id)
     if request.method == "POST":
         education.delete()
