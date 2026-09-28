@@ -1,7 +1,11 @@
+import json
+
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
-from main.models import Experience
+
+from main.models import Education, Experience, Project
+
 
 class MainTest(TestCase):
     def setUp(self):
@@ -9,7 +13,7 @@ class MainTest(TestCase):
             title="Staff Akademi Profesi",
             description="Membantu akademik dan persiapan karir mahasiswa Fasilkom UI.",
             category="volunteer",
-        ) 
+        )
 
     def test_main_url_is_accessible(self):
         response = self.client.get(reverse("main:show_main"))
@@ -51,12 +55,6 @@ class MainTest(TestCase):
         self.assertNotContains(response, "Sedang berlangsung")
 
 
-from django.test import TestCase
-from django.urls import reverse
-
-from main.models import Project
-
-
 class ProjectListViewTest(TestCase):
     url = reverse('main:project_list')
 
@@ -80,10 +78,6 @@ class ProjectListViewTest(TestCase):
         self.assertEqual(Project.objects.count(), 0)
         response = self.client.get(self.url)
         self.assertContains(response, 'Belum ada proyek yang ditambahkan.')
-
-import json
-
-from main.models import Education
 
 
 class EducationCrudTest(TestCase):
