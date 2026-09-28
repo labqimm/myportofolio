@@ -602,8 +602,11 @@ h1, .brand {
 
 .timeline-actions {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 0.5rem;
     margin-top: 0.6rem;
+
 }
 
 .button-small {
@@ -675,4 +678,9 @@ h1, .brand {
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.25);
     font-size: 0.8rem;
+}
+
+/* Tugas 4 — Halaman 403 */
+.forbidden-actions {
+    margin-top: 1.25rem;
 }

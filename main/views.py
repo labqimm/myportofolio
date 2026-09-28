@@ -8,8 +8,11 @@ from django.core import serializers
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from main.forms import EducationForm, ProjectForm
 from main.models import Education, Experience, Project
+from main.roles import can_edit
 
 def show_main(request):
     # .get() dengan nilai default supaya tidak KeyError kalau cookie belum ada
@@ -50,19 +53,28 @@ def register(request):
 def login_user(request):
     """Memeriksa username & password, lalu mencatat pengguna ke session."""
     form = AuthenticationForm(request, data=request.POST or None)
+    # ?next= diisi otomatis oleh @login_required (mis. /login/?next=/projects/add/)
+    next_url = request.POST.get("next") or request.GET.get("next", "")
 
     if request.method == "POST" and form.is_valid():
         user = form.get_user()
         login(request, user)
 
+        # Hanya ikuti next kalau alamatnya masih di website ini (mencegah open redirect)
+        if not url_has_allowed_host_and_scheme(
+            next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+        ):
+            next_url = reverse("main:show_main")
+
         # Simpan waktu login terakhir di cookie browser (Tutorial 04 Bagian 2)
-        response = redirect("main:show_main")
+        response = redirect(next_url)
         response.set_cookie("last_login", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         return response
 
     context = {
         "name": "Muhammad Iqbal",
         "form": form,
+        "next": next_url,
     }
     return render(request, "login.html", context)
 
@@ -161,7 +173,10 @@ def get_experience_json(request):
 
 def get_education_json(request):
     """Mengembalikan seluruh data Education dalam format JSON."""
-    education_json = serializers.serialize("json", Education.objects.all())
+    # Natural key: starred_by berisi username, bukan id internal user
+    education_json = serializers.serialize(
+        "json", Education.objects.all(), use_natural_foreign_keys=True
+    )
     return HttpResponse(education_json, content_type="application/json")
 
 
@@ -172,7 +187,12 @@ def get_educations_from_json(request):
     return [e.object for e in educations]
 
 
+@login_required(login_url="/login/")
 def create_education(request):
+    # Membuat data baru hanya untuk pemilik portofolio
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     form = EducationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         form.save()
@@ -186,7 +206,12 @@ def create_education(request):
     return render(request, "education_form.html", context)
 
 
+@login_required(login_url="/login/")
 def update_education(request, education_id):
+    # Mengubah data boleh untuk pemilik dan editor
+    if not can_edit(request.user):
+        raise PermissionDenied
+
     # 1. Ambil data lama berdasarkan id
     education = get_object_or_404(Education, pk=education_id)
     # 2. instance=education membuat form terisi data lama, dan save() akan mengubah data itu (bukan membuat baru)
@@ -203,9 +228,29 @@ def update_education(request, education_id):
     return render(request, "education_form.html", context)
 
 
+@login_required(login_url="/login/")
 def delete_education(request, education_id):
+    # Menghapus data hanya untuk pemilik portofolio (editor tidak boleh)
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     education = get_object_or_404(Education, pk=education_id)
     if request.method == "POST":
         education.delete()
         messages.success(request, "Riwayat pendidikan berhasil dihapus!")
     return redirect("main:show_main")
+
+
+# Semua akun yang sudah login boleh memberi star (maksimal satu star per akun)
+@login_required(login_url="/login/")
+def toggle_education_star(request, education_id):
+    education = get_object_or_404(Education, pk=education_id)
+
+    if request.method == "POST":
+        if education.starred_by.filter(pk=request.user.pk).exists():
+            education.starred_by.remove(request.user)
+        else:
+            education.starred_by.add(request.user)
+
+    # Kembali ke bagian Education di halaman utama
+    return redirect(reverse("main:show_main") + "#education")

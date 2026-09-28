@@ -1,6 +1,6 @@
 import json
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -83,6 +83,9 @@ class ProjectListViewTest(TestCase):
 
 class EducationCrudTest(TestCase):
     def setUp(self):
+        # Sejak Tugas 4, create/update/delete hanya untuk pemilik -> login sebagai superuser
+        User.objects.create_superuser(username="owner", password="RahasiaKuat123")
+        self.client.login(username="owner", password="RahasiaKuat123")
         self.education = Education.objects.create(
             institution="Universitas Indonesia",
             level="s1",
@@ -255,3 +258,134 @@ class ProjectAuthorizationTest(TestCase):
         self.project.starred_by.add(self.user)
         data = json.loads(self.client.get(reverse("main:get_projects_json")).content)
         self.assertEqual(data[0]["fields"]["starred_by"], [["sasha"]])
+
+
+# ---------- Tugas 4: Peran Editor & Star pada Education ----------
+
+class EducationRoleTest(TestCase):
+    password = "RahasiaKuat123"
+
+    def setUp(self):
+        self.owner = User.objects.create_superuser(username="owner", password=self.password)
+        self.editor = User.objects.create_user(username="editor", password=self.password)
+        # Grup Editor dibuat oleh migrasi 0005, di sini cukup memasukkan akun ke grup
+        self.editor.groups.add(Group.objects.get(name="Editor"))
+        self.user = User.objects.create_user(username="sasha", password=self.password)
+        self.education = Education.objects.create(
+            institution="Universitas Indonesia", level="s1", start_year=2025,
+        )
+        self.data = {"institution": "UI", "level": "s1", "major": "Ilmu Komputer", "start_year": 2025}
+
+    def login(self, username):
+        self.client.login(username=username, password=self.password)
+
+    def test_visitor_redirected_to_login_for_every_action(self):
+        urls = [
+            reverse("main:create_education"),
+            reverse("main:update_education", args=[self.education.id]),
+            reverse("main:delete_education", args=[self.education.id]),
+            reverse("main:toggle_education_star", args=[self.education.id]),
+        ]
+        for url in urls:
+            response = self.client.post(url)
+            self.assertEqual(response.status_code, 302)
+            self.assertTrue(response.url.startswith("/login/?next="))
+
+    def test_regular_user_cannot_create_update_or_delete(self):
+        self.login("sasha")
+        self.assertEqual(self.client.post(reverse("main:create_education"), self.data).status_code, 403)
+        self.assertEqual(
+            self.client.post(reverse("main:update_education", args=[self.education.id]), self.data).status_code, 403
+        )
+        self.assertEqual(
+            self.client.post(reverse("main:delete_education", args=[self.education.id])).status_code, 403
+        )
+        self.education.refresh_from_db()
+        self.assertEqual(self.education.institution, "Universitas Indonesia")
+
+    def test_editor_can_update_but_not_create_or_delete(self):
+        self.login("editor")
+        response = self.client.post(reverse("main:update_education", args=[self.education.id]), self.data)
+        self.assertRedirects(response, reverse("main:show_main"))
+        self.education.refresh_from_db()
+        self.assertEqual(self.education.institution, "UI")
+        self.assertEqual(self.client.post(reverse("main:create_education"), self.data).status_code, 403)
+        self.assertEqual(
+            self.client.post(reverse("main:delete_education", args=[self.education.id])).status_code, 403
+        )
+        self.assertEqual(Education.objects.count(), 1)
+
+    def test_owner_can_create_update_and_delete(self):
+        self.login("owner")
+        self.client.post(reverse("main:create_education"), self.data)
+        self.assertEqual(Education.objects.count(), 2)
+        self.client.post(reverse("main:delete_education", args=[self.education.id]))
+        self.assertFalse(Education.objects.filter(pk=self.education.id).exists())
+
+    def test_template_controls_follow_role(self):
+        add, edit = "+ Tambah Pendidikan", reverse("main:update_education", args=[self.education.id])
+        delete = "Hapus Pendidikan?"
+
+        response = self.client.get(reverse("main:show_main"))  # pengunjung
+        for text in (add, edit, delete):
+            self.assertNotContains(response, text)
+
+        self.login("sasha")
+        response = self.client.get(reverse("main:show_main"))
+        for text in (add, edit, delete):
+            self.assertNotContains(response, text)
+
+        self.login("editor")
+        response = self.client.get(reverse("main:show_main"))
+        self.assertContains(response, edit)
+        self.assertNotContains(response, add)
+        self.assertNotContains(response, delete)
+
+        self.login("owner")
+        response = self.client.get(reverse("main:show_main"))
+        for text in (add, edit, delete):
+            self.assertContains(response, text)
+
+    def test_forbidden_page_uses_custom_template(self):
+        self.login("sasha")
+        response = self.client.get(reverse("main:create_education"))
+        self.assertEqual(response.status_code, 403)
+        self.assertTemplateUsed(response, "403.html")
+
+    def test_star_toggle_max_one_per_user(self):
+        url = reverse("main:toggle_education_star", args=[self.education.id])
+        self.login("sasha")
+        self.client.post(url)
+        self.client.post(url)
+        self.client.post(url)
+        self.assertEqual(self.education.starred_by.count(), 1)
+        self.login("editor")
+        self.client.post(url)
+        self.assertEqual(self.education.starred_by.count(), 2)
+
+    def test_star_count_and_status_rendered(self):
+        self.education.starred_by.add(self.user)
+        self.login("sasha")
+        response = self.client.get(reverse("main:show_main"))
+        self.assertContains(response, "Unstar")
+        self.assertContains(response, '<span class="star-count">1</span>', html=True)
+
+    def test_education_api_does_not_leak_user_ids(self):
+        self.education.starred_by.add(self.user)
+        response = self.client.get(reverse("main:get_education_json"))
+        fields = json.loads(response.content)[0]["fields"]
+        self.assertEqual(fields["starred_by"], [["sasha"]])
+        self.assertNotIn("password", response.content.decode())
+
+    def test_login_redirects_to_next_page(self):
+        response = self.client.post(
+            reverse("main:login") + "?next=/education/add/",
+            {"username": "owner", "password": self.password, "next": "/education/add/"},
+        )
+        self.assertRedirects(response, "/education/add/")
+
+    def test_login_ignores_external_next(self):
+        response = self.client.post(reverse("main:login"), {
+            "username": "owner", "password": self.password, "next": "https://evil.example.com/",
+        })
+        self.assertRedirects(response, reverse("main:show_main"))
