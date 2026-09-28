@@ -72,3 +72,15 @@ Bagian yang saya kerjakan sendiri: Memilih bagian Education, menjalankan migrasi
 
 LINK CHAT AI: https://claude.ai/share/11e0fbad-a6c4-4a0a-8f8e-9172425a265a
 
+[TUGAS 4]
+AI Disclosure:
+
+Tools yang digunakan: Claude (Anthropic)
+
+Bagian yang dibantu AI: AI membantu menerapkan Tutorial 04 (register, login, logout, cookie last_login, otorisasi Projects, star), peran Editor dan star untuk Education, unit test, perbaikan kecil dari tugas sebelumnya.
+
+Strategi Prompting: Saya memberikan PDF Tutorial 1–4 dan Tugas 2–4 serta repo GitHub terbaru, lalu meminta AI mengerjakan langkah demi langkah sambil menjelaskan, memisahkan commit Tutorial 04 dan Tugas 4, dan bertanya dulu jika konteks kode kurang.
+
+Bagian yang saya kerjakan sendiri:Membuat superuser, memasukkan akun ke editor, test secara manual fitur di browser , deploy pws. 
+
+LINK CHAT AI: https://claude.ai/artifact/B3xMx5cb4UBkZnJ5Jk1aAQ
