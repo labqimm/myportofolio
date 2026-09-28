@@ -10,6 +10,7 @@
         {# Pesan "Akun berhasil dibuat" sudah ditampilkan oleh base.html, jadi tidak diulang di sini #}
         <form method="post" action="{% url 'main:login' %}" class="project-form">
             {% csrf_token %}
+            {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
             {% for field in form %}
             <div class="form-group">
                 <label for="{{ field.id_for_label }}">{{ field.label }}</label>

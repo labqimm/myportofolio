@@ -9,6 +9,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from main.forms import EducationForm, ProjectForm
 from main.models import Education, Experience, Project
 from main.roles import can_edit
@@ -52,19 +53,28 @@ def register(request):
 def login_user(request):
     """Memeriksa username & password, lalu mencatat pengguna ke session."""
     form = AuthenticationForm(request, data=request.POST or None)
+    # ?next= diisi otomatis oleh @login_required (mis. /login/?next=/projects/add/)
+    next_url = request.POST.get("next") or request.GET.get("next", "")
 
     if request.method == "POST" and form.is_valid():
         user = form.get_user()
         login(request, user)
 
+        # Hanya ikuti next kalau alamatnya masih di website ini (mencegah open redirect)
+        if not url_has_allowed_host_and_scheme(
+            next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+        ):
+            next_url = reverse("main:show_main")
+
         # Simpan waktu login terakhir di cookie browser (Tutorial 04 Bagian 2)
-        response = redirect("main:show_main")
+        response = redirect(next_url)
         response.set_cookie("last_login", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         return response
 
     context = {
         "name": "Muhammad Iqbal",
         "form": form,
+        "next": next_url,
     }
     return render(request, "login.html", context)
 
