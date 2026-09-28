@@ -1,8 +1,19 @@
+# Virtual environment
 env/
-.env
-.env.prod
+.venv/
+venv/
+
+# Secrets & local database
+.env*
 db.sqlite3
+
+# Static files hasil collectstatic
+staticfiles/
+
+# Python cache
 __pycache__/
 *.pyc
+
+# Editor / OS
 .vscode/
 .DS_Store
