@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block title %}403 Forbidden - Muhammad Iqbal{% endblock title %}
+
+{% block content %}
+<section class="projects auth-section">
+    <div class="container auth-container">
+        <p class="section-kicker">403 Forbidden</p>
+        <h2 class="section-title">Akses Ditolak</h2>
+        <p>Akun <strong>{{ user.username }}</strong> tidak memiliki hak untuk melakukan tindakan ini.</p>
+        <div class="forbidden-actions">
+            <a href="{% url 'main:show_main' %}" class="button">Kembali ke Profil</a>
+        </div>
+    </div>
+</section>
+{% endblock content %}
