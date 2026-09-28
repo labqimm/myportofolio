@@ -66,6 +66,7 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -149,3 +150,7 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+# Tipe primary key default untuk model tanpa field id eksplisit (Project, Education).
+# AutoField dipakai agar sama dengan migrasi yang sudah ada dan tidak memicu migrasi baru.
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
