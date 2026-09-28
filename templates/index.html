@@ -32,7 +32,9 @@
                 <p class="section-kicker">Riwayat Pendidikan</p>
                 <h2 class="section-title">Education</h2>
             </div>
+            {% if user.is_superuser %}
             <a href="{% url 'main:create_education' %}" class="button">+ Tambah Pendidikan</a>
+            {% endif %}
         </div>
         {% if educations %}
         <div class="timeline">
@@ -48,8 +50,13 @@
                     {{ education.get_level_display }}{% if education.major %} &middot; {{ education.major }}{% endif %}
                 </p>
                 <div class="timeline-actions">
+                    {% include "components/education_star.html" with education=education %}
+                    {% if can_edit %}
                     <a href="{% url 'main:update_education' education.id %}" class="button button-secondary button-small">Edit</a>
+                    {% endif %}
+                    {% if user.is_superuser %}
                     {% include "components/education_delete_modal.html" with education=education %}
+                    {% endif %}
                 </div>
             </article>
             {% endfor %}
