@@ -51,14 +51,43 @@ h1, .brand {
 
 .site-header nav {
     display: flex;
-    gap: 2rem;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem 2rem;
 }
+
+
 
 .site-header nav a {
     color: var(--ink);
-    text-decoration: none;
+        text-decoration: none;
     font-size: 0.95rem;
 }
+
+/* Tutorial 04 — username akun yang sedang login */
+.nav-user {
+    padding: 0.1rem 0.6rem;
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    color: var(--accent);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+@media (max-width: 600px) {
+    .site-header .container {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    .site-header nav {
+        justify-content: flex-start;
+        gap: 0.5rem 1.25rem;
+    }
+}
+
+
 
 .hero {
     padding: 4.5rem 0 5rem;
@@ -589,4 +618,61 @@ h1, .brand {
     background: #fff;
     border-radius: var(--radius);
     font-weight: 600;
+}
+
+/* Tutorial 04 — Halaman autentikasi */
+.auth-container {
+    max-width: 480px;
+}
+
+.form-help {
+    margin-top: 0.35rem;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.form-help ul {
+    margin: 0.25rem 0 0;
+    padding-left: 1.1rem;
+}
+
+.auth-switch {
+    margin-top: 1rem;
+}
+
+.auth-switch a {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+/* Tutorial 04 — Tombol star */
+.project-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: auto;
+    padding-top: 0.5rem;
+}
+
+.star-form {
+    display: inline;
+}
+
+.button-star {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--ink);
+}
+
+.button-star.is-starred {
+    background: var(--accent);
+}
+
+.star-count {
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.25);
+    font-size: 0.8rem;
 }

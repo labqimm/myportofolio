@@ -10,7 +10,9 @@
                 <p class="section-kicker">Portfolio</p>
                 <h2 class="section-title">Projects</h2>
             </div>
+            {% if user.is_superuser %}
             <a href="{% url 'main:create_project' %}" class="button project-add-button">+ Tambah Proyek</a>
+            {% endif %}
         </div>
 
         <form method="get" action="{% url 'main:project_list' %}" class="project-search">
@@ -30,7 +32,12 @@
                 {% if project.repo_url %}
                 <a class="social-link" href="{{ project.repo_url }}">Repository</a>
                 {% endif %}
-                {% include "components/project_delete_modal.html" with project=project %}
+                <div class="project-actions">
+                    {% include "components/project_star.html" with project=project %}
+                    {% if user.is_superuser %}
+                    {% include "components/project_delete_modal.html" with project=project %}
+                    {% endif %}
+                </div>
             </article>
             {% endfor %}
         </div>

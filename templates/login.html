@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Login - {{ name }}{% endblock title %}
+
+{% block content %}
+<section class="projects auth-section">
+    <div class="container auth-container">
+        <p class="section-kicker">Akun Pengunjung</p>
+        <h2 class="section-title">Login</h2>
+        {# Pesan "Akun berhasil dibuat" sudah ditampilkan oleh base.html, jadi tidak diulang di sini #}
+        <form method="post" action="{% url 'main:login' %}" class="project-form">
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% for error in field.errors %}
+                <p class="form-error">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+            <p class="form-error">{{ error }}</p>
+            {% endfor %}
+            <button type="submit" class="button">Login</button>
+        </form>
+        <p class="auth-switch">Belum punya akun? <a href="{% url 'main:register' %}">Daftar di sini</a>.</p>
+    </div>
+</section>
+{% endblock content %}

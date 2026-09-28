@@ -1,4 +1,6 @@
 import uuid
+
+from django.contrib.auth.models import User
 from django.db import models
 
 class Experience(models.Model):
@@ -33,6 +35,10 @@ class Project(models.Model):
     year = models.PositiveIntegerField()
     repo_url = models.URLField(blank=True)
     is_featured = models.BooleanField(default=False)
+    # Satu proyek bisa di-star banyak pengguna, dan satu pengguna bisa mem-star banyak proyek
+    starred_by = models.ManyToManyField(
+        User, related_name="starred_projects", blank=True
+    )
 
     class Meta:
         ordering = ['-year', 'title']

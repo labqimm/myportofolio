@@ -1,11 +1,19 @@
+import datetime
+
 from django.contrib import messages
+from django.contrib.auth import login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core import serializers
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from main.forms import EducationForm, ProjectForm
 from main.models import Education, Experience, Project
 
 def show_main(request):
+    # .get() dengan nilai default supaya tidak KeyError kalau cookie belum ada
+    last_login = request.COOKIES.get("last_login", "Belum ada sesi login / Cookie tidak ditemukan")
     context = {
         "name": "Muhammad Iqbal",
         "npm": "2506657075",
@@ -16,8 +24,55 @@ def show_main(request):
             "students as a teaching assistant across several courses."
         ),
         "educations": get_educations_from_json(request),
+        "last_login": last_login,
     }
     return render(request, "index.html", context)
+
+
+# ---------- Autentikasi (Tutorial 04) ----------
+
+def register(request):
+    """Menampilkan form daftar akun; akun baru disimpan dengan password yang sudah di-hash."""
+    form = UserCreationForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Akun berhasil dibuat. Silakan login.")
+        return redirect("main:login")
+
+    context = {
+        "name": "Muhammad Iqbal",
+        "form": form,
+    }
+    return render(request, "register.html", context)
+
+
+def login_user(request):
+    """Memeriksa username & password, lalu mencatat pengguna ke session."""
+    form = AuthenticationForm(request, data=request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        user = form.get_user()
+        login(request, user)
+
+        # Simpan waktu login terakhir di cookie browser (Tutorial 04 Bagian 2)
+        response = redirect("main:show_main")
+        response.set_cookie("last_login", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        return response
+
+    context = {
+        "name": "Muhammad Iqbal",
+        "form": form,
+    }
+    return render(request, "login.html", context)
+
+
+def logout_user(request):
+    """Menghapus session pengguna; akunnya tetap ada di database."""
+    logout(request)
+    response = redirect("main:show_main")
+    response.delete_cookie("last_login")
+    return response
 
 
 def show_experience(request):
@@ -28,7 +83,12 @@ def show_experience(request):
     return render(request, "experience.html", context)
 
 
+@login_required(login_url="/login/")
 def create_project(request):
+    # Hanya pemilik portofolio (superuser) yang boleh menambah proyek -> selain itu 403
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     form = ProjectForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         form.save()
@@ -46,7 +106,8 @@ def get_projects_json(request):
     projects = Project.objects.all()
     if title_query:
         projects = projects.filter(title__icontains=title_query)
-    projects_json = serializers.serialize("json", projects)
+    # use_natural_foreign_keys: starred_by tampil sebagai username, bukan id internal database
+    projects_json = serializers.serialize("json", projects, use_natural_foreign_keys=True)
     return HttpResponse(projects_json, content_type="application/json")
 
 
@@ -63,11 +124,29 @@ def project_list(request):
     return render(request, "project_list.html", context)
 
 
+@login_required(login_url="/login/")
 def delete_project(request, project_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     project = get_object_or_404(Project, pk=project_id)
     if request.method == "POST":
         project.delete()
         messages.success(request, "Project berhasil dihapus!")
+    return redirect("main:project_list")
+
+# Tanpa cek is_superuser: semua akun yang sudah login boleh memberi star
+@login_required(login_url="/login/")
+def toggle_star(request, project_id):
+    project = get_object_or_404(Project, pk=project_id)
+
+    if request.method == "POST":
+        # Kalau akun ini sudah pernah memberi star, batalkan star-nya. Kalau belum, tambahkan.
+        if project.starred_by.filter(pk=request.user.pk).exists():
+            project.starred_by.remove(request.user)
+        else:
+            project.starred_by.add(request.user)
+
     return redirect("main:project_list")
 
 # ---------- Experience (JSON) ----------
