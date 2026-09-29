@@ -54,6 +54,8 @@
     const gridContainer = document.getElementById('grid');
     const searchForm = document.getElementById('project-search-form');
     const searchInput = document.getElementById('search-input');
+    const SEARCH_DEBOUNCE_DELAY = 300; // tunggu 300 ms setelah ketikan terakhir
+    let searchDebounceTimer;
 
     // Menampilkan satu bagian halaman dan menyembunyikan sisanya
     function displayPageSection({ showLoading = false, showError = false, showEmpty = false, showGrid = false }) {
@@ -152,10 +154,23 @@
         }
     }
 
-    // Event handler form pencarian
-    searchForm.addEventListener('submit', function (e) {
-        e.preventDefault(); // Mencegah reload halaman
+    // Pencarian: dipakai oleh event input (debounce) dan submit
+    function searchProjects() {
         fetchProjects(searchInput.value.trim());
+    }
+
+    // Debounce: timer diulang setiap ada ketikan, jadi request baru dikirim
+    // setelah pengguna berhenti mengetik selama SEARCH_DEBOUNCE_DELAY
+    searchInput.addEventListener('input', function () {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(searchProjects, SEARCH_DEBOUNCE_DELAY);
+    });
+
+    // Tombol Cari / Enter: langsung cari tanpa menunggu timer
+    searchForm.addEventListener('submit', function (event) {
+        event.preventDefault(); // Mencegah reload halaman
+        clearTimeout(searchDebounceTimer);
+        searchProjects();
     });
 
     // Start application
