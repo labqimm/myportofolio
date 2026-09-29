@@ -742,3 +742,8 @@ h1, .brand {
         max-width: none;
     }
 }
+
+/* Tutorial 05 — Menyembunyikan state halaman Projects */
+.hide {
+    display: none !important;
+}
