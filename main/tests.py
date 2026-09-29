@@ -1,7 +1,7 @@
 import json
 
 from django.contrib.auth.models import Group, User
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
@@ -400,3 +400,81 @@ class EducationRoleTest(TestCase):
             "username": "owner", "password": self.password, "next": "https://evil.example.com/",
         })
         self.assertRedirects(response, reverse("main:show_main"))
+
+
+# ---------- Tutorial 05: AJAX, CSRF, dan XSS ----------
+
+class ProjectAjaxTest(TestCase):
+    password = "RahasiaKuat123"
+
+    def setUp(self):
+        User.objects.create_superuser(username="owner", password=self.password)
+        self.user = User.objects.create_user(username="sasha", password=self.password)
+        self.url = reverse("main:create_project_ajax")
+        self.data = {
+            "title": "Portfolio Website",
+            "description": "Website portofolio Django.",
+            "tech_stack": "Django, Python",
+            "year": 2026,
+            "repo_url": "https://github.com/labqimm/myportofolio",
+        }
+
+    def test_owner_creates_project_and_gets_201_json(self):
+        self.client.login(username="owner", password=self.password)
+        response = self.client.post(self.url, self.data)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["message"], "Proyek berhasil ditambahkan.")
+        self.assertTrue(Project.objects.filter(title="Portfolio Website").exists())
+
+    def test_visitor_and_regular_user_get_403_json(self):
+        response = self.client.post(self.url, self.data)  # belum login: JSON 403, bukan redirect
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("message", response.json())
+        self.client.login(username="sasha", password=self.password)
+        self.assertEqual(self.client.post(self.url, self.data).status_code, 403)
+        self.assertFalse(Project.objects.exists())
+
+    def test_get_is_not_allowed(self):
+        self.client.login(username="owner", password=self.password)
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+
+    def test_invalid_data_returns_400_with_field_errors(self):
+        self.client.login(username="owner", password=self.password)
+        response = self.client.post(self.url, {**self.data, "title": "   ", "repo_url": "javascript:alert(1)"})
+        self.assertEqual(response.status_code, 400)
+        errors = response.json()["errors"]
+        self.assertIn("title", errors)
+        self.assertIn("repo_url", errors)
+
+    def test_html_tags_are_stripped_or_rejected(self):
+        self.client.login(username="owner", password=self.password)
+        response = self.client.post(self.url, {**self.data, "title": "<img src=x onerror=\"alert('XSS!')\">"})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.json()["errors"]["title"][0]["message"],
+            "Nama proyek tidak boleh hanya berisi tag HTML.",
+        )
+        self.client.post(self.url, {**self.data, "title": "Halo <b>dunia</b>"})
+        self.assertTrue(Project.objects.filter(title="Halo dunia").exists())
+
+    def test_csrf_token_is_required(self):
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.login(username="owner", password=self.password)
+        self.assertEqual(csrf_client.post(self.url, self.data).status_code, 403)
+
+    def test_api_reports_star_status_for_current_user(self):
+        project = Project.objects.create(title="Burhan Quest", description="-", tech_stack="Java", year=2026)
+        project.starred_by.add(self.user)
+        self.client.login(username="sasha", password=self.password)
+        fields = self.client.get(reverse("main:get_projects_json")).json()[0]["fields"]
+        self.assertTrue(fields["is_starred"])
+        self.assertEqual(fields["star_count"], 1)
+        self.client.logout()
+        fields = self.client.get(reverse("main:get_projects_json")).json()[0]["fields"]
+        self.assertFalse(fields["is_starred"])
+
+    def test_modal_only_rendered_for_owner(self):
+        self.client.login(username="sasha", password=self.password)
+        self.assertNotContains(self.client.get(reverse("main:project_list")), 'id="add-project-modal"')
+        self.client.login(username="owner", password=self.password)
+        self.assertContains(self.client.get(reverse("main:project_list")), 'id="add-project-modal"')
