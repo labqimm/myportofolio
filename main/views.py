@@ -151,6 +151,8 @@ def project_list(request):
     context = {
         "page_title": "Projects",
         "title_query": title_query,
+        # Form kosong untuk modal Tambah Proyek (hanya dirender untuk superuser)
+        "form": ProjectForm(),
     }
     return render(request, "project_list.html", context)
 
