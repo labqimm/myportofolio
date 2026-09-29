@@ -10,6 +10,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 from main.forms import EducationForm, ProjectForm
 from main.models import Education, Experience, Project
 from main.roles import can_edit
@@ -111,6 +112,28 @@ def create_project(request):
         "form": form,
     }
     return render(request, "project_form.html", context)
+
+
+@require_POST
+def create_project_ajax(request):
+    """Endpoint AJAX untuk menambah proyek; selalu membalas JSON supaya mudah dibaca JavaScript."""
+    # Tidak memakai @login_required: redirect ke halaman login akan diikuti fetch dan
+    # terbaca sebagai HTML 200. AnonymousUser juga is_superuser=False, jadi cukup satu cek ini.
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {"message": "Hanya pemilik portofolio yang dapat menambahkan proyek."},
+            status=403,
+        )
+
+    # ProjectForm dipakai ulang agar semua validasi (field wajib, URL, dll.) tetap berlaku
+    form = ProjectForm(request.POST)
+    if form.is_valid():
+        project = form.save()
+        return JsonResponse(
+            {"message": "Proyek berhasil ditambahkan.", "pk": project.id},
+            status=201,
+        )
+    return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
 
 
 def get_projects_json(request):
