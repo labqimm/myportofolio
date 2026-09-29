@@ -6,10 +6,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core import serializers
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 from main.forms import EducationForm, ProjectForm
 from main.models import Education, Experience, Project
 from main.roles import can_edit
@@ -113,25 +114,68 @@ def create_project(request):
     return render(request, "project_form.html", context)
 
 
+@require_POST
+def create_project_ajax(request):
+    """Endpoint AJAX untuk menambah proyek; selalu membalas JSON supaya mudah dibaca JavaScript."""
+    # Tidak memakai @login_required: redirect ke halaman login akan diikuti fetch dan
+    # terbaca sebagai HTML 200. AnonymousUser juga is_superuser=False, jadi cukup satu cek ini.
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {"message": "Hanya pemilik portofolio yang dapat menambahkan proyek."},
+            status=403,
+        )
+
+    # ProjectForm dipakai ulang agar semua validasi (field wajib, URL, dll.) tetap berlaku
+    form = ProjectForm(request.POST)
+    if form.is_valid():
+        project = form.save()
+        return JsonResponse(
+            {"message": "Proyek berhasil ditambahkan.", "pk": project.id},
+            status=201,
+        )
+    return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
+
+
 def get_projects_json(request):
+    """Data proyek dalam JSON, dirakit manual agar bisa menyertakan status star milik user yang login."""
     title_query = request.GET.get("title", "").strip()
-    projects = Project.objects.all()
+    # prefetch_related: ambil semua data star sekaligus, bukan satu query per proyek
+    projects = Project.objects.prefetch_related("starred_by").all()
     if title_query:
         projects = projects.filter(title__icontains=title_query)
-    # use_natural_foreign_keys: starred_by tampil sebagai username, bukan id internal database
-    projects_json = serializers.serialize("json", projects, use_natural_foreign_keys=True)
-    return HttpResponse(projects_json, content_type="application/json")
+
+    data = []
+    for project in projects:
+        starred_users = list(project.starred_by.all())
+        is_starred = request.user.is_authenticated and any(
+            user.pk == request.user.pk for user in starred_users
+        )
+        data.append({
+            "pk": project.id,
+            "fields": {
+                "title": project.title,
+                "description": project.description,
+                "tech_stack": project.tech_stack,
+                "year": project.year,
+                "repo_url": project.repo_url,
+                "is_featured": project.is_featured,
+                "star_count": len(starred_users),
+                "is_starred": is_starred,
+                "starred_by_names": ", ".join(user.username for user in starred_users),
+            },
+        })
+    # safe=False karena data berupa list, bukan dict
+    return JsonResponse(data, safe=False)
 
 
 def project_list(request):
-    json_response = get_projects_json(request)
-    projects = serializers.deserialize("json", json_response.content.decode("utf-8"))
-    projects = [p.object for p in projects]
+    """Hanya mengirim kerangka halaman; data proyek diambil JavaScript lewat /api/projects/."""
     title_query = request.GET.get("title", "").strip()
     context = {
         "page_title": "Projects",
-        "projects": projects,
         "title_query": title_query,
+        # Form kosong untuk modal Tambah Proyek (hanya dirender untuk superuser)
+        "form": ProjectForm(),
     }
     return render(request, "project_list.html", context)
 
