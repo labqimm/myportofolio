@@ -14,6 +14,7 @@ from django.views.decorators.http import require_POST
 from main.forms import EducationForm, ProjectForm
 from main.models import Education, Experience, Project
 from main.roles import can_edit
+from django.db.models import Q
 
 def show_main(request):
     # .get() dengan nilai default supaya tidak KeyError kalau cookie belum ada
@@ -27,7 +28,9 @@ def show_main(request):
             "now a familiar (and slightly dreaded) face among Fasilkom "
             "students as a teaching assistant across several courses."
         ),
-        "educations": get_educations_from_json(request),
+               # Tugas 5: data pendidikan tidak dikirim lagi dari sini, tapi diambil JavaScript
+        # lewat /api/education/. View ini cukup mengirim kerangka halaman + form kosong untuk modal.
+        "education_form": EducationForm(),
         "last_login": last_login,
     }
     return render(request, "index.html", context)
@@ -216,20 +219,64 @@ def get_experience_json(request):
 # ---------- Education (CRUD + JSON) ----------
 
 def get_education_json(request):
-    """Mengembalikan seluruh data Education dalam format JSON."""
-    # Natural key: starred_by berisi username, bukan id internal user
-    education_json = serializers.serialize(
-        "json", Education.objects.all(), use_natural_foreign_keys=True
-    )
-    return HttpResponse(education_json, content_type="application/json")
+    """Data Education dalam JSON, dirakit manual agar bisa menyertakan info star user yang login.
+
+    Query opsional ?q=... mencari berdasarkan nama institusi atau jurusan (tidak peka huruf besar/kecil).
+    """
+    search_query = request.GET.get("q", "").strip()
+    # prefetch_related: ambil semua data star sekaligus, bukan satu query per pendidikan
+    educations = Education.objects.prefetch_related("starred_by").all()
+    if search_query:
+        educations = educations.filter(
+            Q(institution__icontains=search_query) | Q(major__icontains=search_query)
+        )
+
+    data = []
+    for education in educations:
+        starred_users = list(education.starred_by.all())
+        is_starred = request.user.is_authenticated and any(
+            user.pk == request.user.pk for user in starred_users
+        )
+        data.append({
+            "pk": education.id,
+            "fields": {
+                "institution": education.institution,
+                "level": education.level,
+                "level_display": education.get_level_display(),
+                "major": education.major,
+                "start_year": education.start_year,
+                "end_year": education.end_year,
+                "is_ongoing": education.is_ongoing,
+                "star_count": len(starred_users),
+                "is_starred": is_starred,
+                # Hanya username, bukan id internal user (lanjutan perbaikan Tugas 4)
+                "starred_by_names": ", ".join(user.username for user in starred_users),
+            },
+        })
+    # safe=False karena data berupa list, bukan dict
+    return JsonResponse(data, safe=False)
 
 
-def get_educations_from_json(request):
-    """Mengambil JSON dari get_education_json lalu mengubahnya kembali menjadi objek Education."""
-    json_response = get_education_json(request)
-    educations = serializers.deserialize("json", json_response.content.decode("utf-8"))
-    return [e.object for e in educations]
+@require_POST
+def create_education_ajax(request):
+    """Endpoint AJAX untuk menambah pendidikan. Selalu membalas JSON + status HTTP yang sesuai."""
+    # Hak akses Tugas 4: hanya pemilik (superuser) yang boleh MENAMBAH data.
+    # Dicek di sini (bukan cuma menyembunyikan tombol) supaya request lewat Postman/console juga ditolak.
+    # Tidak memakai @login_required karena redirect ke /login/ akan terbaca fetch sebagai HTML 200.
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {"message": "Hanya pemilik portofolio yang dapat menambahkan riwayat pendidikan."},
+            status=403,
+        )
 
+    form = EducationForm(request.POST)
+    if form.is_valid():
+        education = form.save()
+        return JsonResponse(
+            {"message": "Riwayat pendidikan berhasil ditambahkan.", "pk": education.id},
+            status=201,
+        )
+    return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
 
 @login_required(login_url="/login/")
 def create_education(request):

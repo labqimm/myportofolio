@@ -1,16 +1,14 @@
-<button type="button" class="button button-danger button-small"
-    popovertarget="delete-education-{{ education.id }}">Hapus</button>
-
-<div id="delete-education-{{ education.id }}" class="project-delete-modal" popover="auto">
+{# Satu modal hapus untuk semua item. JavaScript mengisi nama institusi & action form sebelum modal dibuka. #}
+<div id="delete-education-modal" class="project-delete-modal" popover="auto">
     <button type="button" class="project-delete-modal__backdrop"
-        popovertarget="delete-education-{{ education.id }}" popovertargetaction="hide"></button>
+        popovertarget="delete-education-modal" popovertargetaction="hide"></button>
     <div class="project-delete-modal__content">
         <h2>Hapus Pendidikan?</h2>
-        <p>Yakin mau hapus <strong>{{ education.institution }}</strong> dari riwayat pendidikan?</p>
+        <p>Yakin mau hapus <strong id="delete-education-name"></strong> dari riwayat pendidikan?</p>
         <div class="project-delete-modal__actions">
             <button type="button" class="button button-secondary"
-                popovertarget="delete-education-{{ education.id }}" popovertargetaction="hide">Batal</button>
-            <form method="post" action="{% url 'main:delete_education' education.id %}">
+                popovertarget="delete-education-modal" popovertargetaction="hide">Batal</button>
+            <form id="delete-education-form" method="post" action="">
                 {% csrf_token %}
                 <button type="submit" class="button button-danger">Ya, Hapus</button>
             </form>

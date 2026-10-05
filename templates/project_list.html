@@ -236,10 +236,7 @@
                 showToast('Berhasil', 'Proyek baru berhasil ditambahkan!', 'success');
                 fetchProjects(searchInput.value.trim());
             } else {
-                const errorMessages = result.errors
-                    ? Object.values(result.errors).flat().map(error => error.message)
-                    : [result.message || `Terjadi kesalahan (status ${response.status}).`];
-                showToast('Gagal menambahkan proyek', errorMessages.join(' '), 'error');
+                showToast('Gagal menambahkan proyek', formatServerErrors(result, response.status), 'error');
             }
         } catch (error) {
             console.error('Error adding project:', error);
