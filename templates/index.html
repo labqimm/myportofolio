@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
 <section class="hero" id="profile">
     <div class="container hero-grid">
@@ -8,7 +9,7 @@
         </div>
         <div class="hero-photo">
             <div class="photo-block"></div>
-            <img class="avatar" src="/static/img/fotoporto.jpeg" alt="Photo of {{ name }}">
+            <img class="avatar" src="{% static 'img/fotoporto.jpeg' %}" alt="Photo of {{ name }}">
         </div>
         <div class="hero-details">
             <p class="bio">{{ bio }}</p>
@@ -25,7 +26,18 @@
         </div>
     </div>
 </section>
-<section class="education" id="education">
+{# Tugas 5: section ini hanya kerangka. Isi timeline diambil static/js/education.js lewat /api/education/. #}
+{# data-* dipakai untuk mengoper URL & peran ke file .js, karena tag Django tidak jalan di file static. #}
+<section class="education" id="education"
+    data-api-url="{% url 'main:get_education_json' %}"
+    data-create-url="{% url 'main:create_education_ajax' %}"
+    data-edit-url="{% url 'main:update_education' 0 %}"
+    data-delete-url="{% url 'main:delete_education' 0 %}"
+    data-star-url="{% url 'main:toggle_education_star' 0 %}"
+    data-can-edit="{{ can_edit|yesno:'true,false' }}"
+    data-is-owner="{{ user.is_superuser|yesno:'true,false' }}">
+    {# Token CSRF cadangan untuk form star yang dibuat JavaScript (ada untuk semua peran) #}
+    {% csrf_token %}
     <div class="container">
         <div class="project-header">
             <div>
@@ -33,37 +45,34 @@
                 <h2 class="section-title">Education</h2>
             </div>
             {% if user.is_superuser %}
-            <a href="{% url 'main:create_education' %}" class="button">+ Tambah Pendidikan</a>
+            <button type="button" class="button" popovertarget="add-education-modal">+ Tambah Pendidikan</button>
             {% endif %}
         </div>
-        {% if educations %}
-        <div class="timeline">
-            {% for education in educations %}
-            <article class="timeline-item">
-                <span class="timeline-dot{% if education.is_ongoing %} timeline-dot-active{% endif %}"></span>
-                <p class="timeline-period">
-                    <time datetime="{{ education.start_year }}">{{ education.start_year }}</time> &mdash;
-                    {% if education.is_ongoing %}sekarang{% else %}<time datetime="{{ education.end_year }}">{{ education.end_year }}</time>{% endif %}
-                </p>
-                <h3 class="timeline-institution">{{ education.institution }}</h3>
-                <p class="timeline-detail">
-                    {{ education.get_level_display }}{% if education.major %} &middot; {{ education.major }}{% endif %}
-                </p>
-                <div class="timeline-actions">
-                    {% include "components/education_star.html" with education=education %}
-                    {% if can_edit %}
-                    <a href="{% url 'main:update_education' education.id %}" class="button button-secondary button-small">Edit</a>
-                    {% endif %}
-                    {% if user.is_superuser %}
-                    {% include "components/education_delete_modal.html" with education=education %}
-                    {% endif %}
-                </div>
-            </article>
-            {% endfor %}
+
+        {# Tanpa method/action: pengiriman form diambil alih JavaScript #}
+        <form id="education-search-form" class="project-search" role="search">
+            <input type="search" id="education-search-input" name="q"
+                placeholder="Cari institusi atau jurusan" class="project-search__input"
+                aria-label="Cari institusi atau jurusan">
+            <button type="submit" class="button">Cari</button>
+        </form>
+
+        <div id="education-loading" class="empty-state hide"><p>Memuat riwayat pendidikan...</p></div>
+        <div id="education-error" class="empty-state hide">
+            <p>Gagal memuat riwayat pendidikan.</p>
+            <button type="button" id="education-retry" class="button button-secondary button-small">Coba lagi</button>
         </div>
-        {% else %}
-        <p class="empty-state">Belum ada riwayat pendidikan yang ditambahkan.</p>
-        {% endif %}
+        <div id="education-empty" class="empty-state hide">
+            <p id="education-empty-message">Belum ada riwayat pendidikan yang ditambahkan.</p>
+        </div>
+        <div id="education-timeline" class="timeline hide" aria-live="polite"></div>
     </div>
 </section>
+
+{% if user.is_superuser %}
+{% include "components/education_form_modal.html" %}
+{% include "components/education_delete_modal.html" %}
+{% endif %}
+
+<script src="{% static 'js/education.js' %}"></script>
 {% endblock content %}
