@@ -59,6 +59,17 @@ class EducationForm(ModelForm):
             "end_year": NumberInput(attrs={"placeholder": "2029"}),
         }
 
+        # Tugas 5: buang tag HTML dari input teks (lapisan pertahanan XSS di sisi server)
+    def clean_institution(self):
+        institution = strip_tags(self.cleaned_data["institution"]).strip()
+        if not institution:
+            raise ValidationError("Nama institusi tidak boleh kosong atau hanya berisi tag HTML.")
+        return institution
+
+    def clean_major(self):
+        # major boleh kosong, jadi tidak perlu error kalau hasilnya string kosong
+        return strip_tags(self.cleaned_data["major"]).strip()
+
     def clean(self):
         """Tahun lulus tidak boleh lebih kecil dari tahun masuk."""
         cleaned_data = super().clean()
