@@ -102,9 +102,13 @@ class EducationCrudTest(TestCase):
         )
 
     def test_education_shown_on_main_page(self):
+        # Tugas 5: halaman utama hanya kerangka, datanya datang dari API
         response = self.client.get(reverse("main:show_main"))
-        self.assertContains(response, "Universitas Indonesia")
-        self.assertContains(response, "sekarang")
+        self.assertContains(response, 'id="education-timeline"')
+        self.assertNotContains(response, 'class="timeline-institution"')  # item belum dirender server
+        fields = self.client.get(reverse("main:get_education_json")).json()[0]["fields"]
+        self.assertEqual(fields["institution"], "Universitas Indonesia")
+        self.assertTrue(fields["is_ongoing"])
 
     def test_create_education(self):
         response = self.client.post(reverse("main:create_education"), {
@@ -334,28 +338,26 @@ class EducationRoleTest(TestCase):
         self.assertFalse(Education.objects.filter(pk=self.education.id).exists())
 
     def test_template_controls_follow_role(self):
-        add, edit = "+ Tambah Pendidikan", reverse("main:update_education", args=[self.education.id])
-        delete = "Hapus Pendidikan?"
-
-        response = self.client.get(reverse("main:show_main"))  # pengunjung
-        for text in (add, edit, delete):
-            self.assertNotContains(response, text)
-
-        self.login("sasha")
-        response = self.client.get(reverse("main:show_main"))
-        for text in (add, edit, delete):
-            self.assertNotContains(response, text)
-
-        self.login("editor")
-        response = self.client.get(reverse("main:show_main"))
-        self.assertContains(response, edit)
-        self.assertNotContains(response, add)
-        self.assertNotContains(response, delete)
-
-        self.login("owner")
-        response = self.client.get(reverse("main:show_main"))
-        for text in (add, edit, delete):
-            self.assertContains(response, text)
+        # Tugas 5: tombol Edit/Hapus dibuat JavaScript berdasarkan data-can-edit & data-is-owner
+        add, delete = "+ Tambah Pendidikan", "Hapus Pendidikan?"
+        expected = {
+            None: ('data-can-edit="false"', 'data-is-owner="false"', False),
+            "sasha": ('data-can-edit="false"', 'data-is-owner="false"', False),
+            "editor": ('data-can-edit="true"', 'data-is-owner="false"', False),
+            "owner": ('data-can-edit="true"', 'data-is-owner="true"', True),
+        }
+        for username, (can_edit_attr, owner_attr, owner_only_visible) in expected.items():
+            self.client.logout()
+            if username:
+                self.login(username)
+            response = self.client.get(reverse("main:show_main"))
+            self.assertContains(response, can_edit_attr)
+            self.assertContains(response, owner_attr)
+            for text in (add, delete):
+                if owner_only_visible:
+                    self.assertContains(response, text)
+                else:
+                    self.assertNotContains(response, text)
 
     def test_forbidden_page_uses_custom_template(self):
         self.login("sasha")
@@ -375,17 +377,23 @@ class EducationRoleTest(TestCase):
         self.assertEqual(self.education.starred_by.count(), 2)
 
     def test_star_count_and_status_rendered(self):
+        # Tugas 5: info star dikirim lewat JSON, lalu dirender JavaScript
         self.education.starred_by.add(self.user)
         self.login("sasha")
-        response = self.client.get(reverse("main:show_main"))
-        self.assertContains(response, "Unstar")
-        self.assertContains(response, '<span class="star-count">1</span>', html=True)
+        fields = self.client.get(reverse("main:get_education_json")).json()[0]["fields"]
+        self.assertTrue(fields["is_starred"])
+        self.assertEqual(fields["star_count"], 1)
+        self.client.logout()
+        fields = self.client.get(reverse("main:get_education_json")).json()[0]["fields"]
+        self.assertFalse(fields["is_starred"])
+        self.assertEqual(fields["star_count"], 1)
 
     def test_education_api_does_not_leak_user_ids(self):
         self.education.starred_by.add(self.user)
         response = self.client.get(reverse("main:get_education_json"))
         fields = json.loads(response.content)[0]["fields"]
-        self.assertEqual(fields["starred_by"], [["sasha"]])
+        self.assertEqual(fields["starred_by_names"], "sasha")
+        self.assertNotIn("starred_by", fields)  # tidak ada daftar id user
         self.assertNotIn("password", response.content.decode())
 
     def test_login_redirects_to_next_page(self):
@@ -478,3 +486,89 @@ class ProjectAjaxTest(TestCase):
         self.assertNotContains(self.client.get(reverse("main:project_list")), 'id="add-project-modal"')
         self.client.login(username="owner", password=self.password)
         self.assertContains(self.client.get(reverse("main:project_list")), 'id="add-project-modal"')
+
+
+# ---------- Tugas 5: AJAX, CSRF, dan XSS pada Education ----------
+
+class EducationAjaxTest(TestCase):
+    password = "RahasiaKuat123"
+
+    def setUp(self):
+        User.objects.create_superuser(username="owner", password=self.password)
+        editor = User.objects.create_user(username="editor", password=self.password)
+        editor.groups.add(Group.objects.get(name="Editor"))
+        User.objects.create_user(username="sasha", password=self.password)
+        self.url = reverse("main:create_education_ajax")
+        self.data = {
+            "institution": "Universitas Indonesia",
+            "level": "s1",
+            "major": "Ilmu Komputer",
+            "start_year": 2025,
+        }
+
+    def login(self, username):
+        self.client.login(username=username, password=self.password)
+
+    def test_owner_creates_education_and_gets_201_json(self):
+        self.login("owner")
+        response = self.client.post(self.url, self.data)
+        self.assertEqual(response.status_code, 201)
+        self.assertIn("message", response.json())
+        self.assertTrue(Education.objects.filter(institution="Universitas Indonesia").exists())
+
+    def test_visitor_user_and_editor_get_403_json(self):
+        # Editor boleh mengubah, tapi tidak boleh menambah (aturan Tugas 4)
+        self.assertEqual(self.client.post(self.url, self.data).status_code, 403)
+        for username in ("sasha", "editor"):
+            self.login(username)
+            response = self.client.post(self.url, self.data)
+            self.assertEqual(response.status_code, 403)
+            self.assertIn("message", response.json())
+        self.assertFalse(Education.objects.exists())
+
+    def test_get_is_not_allowed(self):
+        self.login("owner")
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+
+    def test_invalid_data_returns_400_with_field_errors(self):
+        self.login("owner")
+        response = self.client.post(self.url, {**self.data, "start_year": 2025, "end_year": 2020})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.json()["errors"]["end_year"][0]["message"],
+            "Tahun lulus tidak boleh sebelum tahun masuk.",
+        )
+
+    def test_html_tags_are_stripped_or_rejected(self):
+        self.login("owner")
+        payload = "<img src=\"x\" onerror=\"alert('XSS!')\">"
+        response = self.client.post(self.url, {**self.data, "institution": payload})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("institution", response.json()["errors"])
+
+        self.client.post(self.url, {**self.data, "institution": "UI <b>Depok</b>", "major": payload + "Ilkom"})
+        education = Education.objects.get()
+        self.assertEqual(education.institution, "UI Depok")
+        self.assertEqual(education.major, "Ilkom")
+
+    def test_csrf_token_is_required(self):
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.login(username="owner", password=self.password)
+        self.assertEqual(csrf_client.post(self.url, self.data).status_code, 403)
+        self.assertFalse(Education.objects.exists())
+
+    def test_search_filters_by_institution_or_major(self):
+        Education.objects.create(institution="Universitas Indonesia", level="s1", major="Ilmu Komputer", start_year=2025)
+        Education.objects.create(institution="SMA Negeri 11 Bekasi", level="sma", major="IPA", start_year=2022)
+        api = reverse("main:get_education_json")
+        by_institution = [e["fields"]["institution"] for e in self.client.get(api, {"q": "sma negeri"}).json()]
+        by_major = [e["fields"]["institution"] for e in self.client.get(api, {"q": "komputer"}).json()]
+        self.assertEqual(by_institution, ["SMA Negeri 11 Bekasi"])
+        self.assertEqual(by_major, ["Universitas Indonesia"])
+        self.assertEqual(self.client.get(api, {"q": "tidak-ada"}).json(), [])
+
+    def test_modal_only_rendered_for_owner(self):
+        self.login("editor")
+        self.assertNotContains(self.client.get(reverse("main:show_main")), 'id="add-education-modal"')
+        self.login("owner")
+        self.assertContains(self.client.get(reverse("main:show_main")), 'id="add-education-modal"')
