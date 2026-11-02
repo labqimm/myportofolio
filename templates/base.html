@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    {# Tema komik: Bangers (judul), Archivo Narrow (label), Space Grotesk (teks), Comic Neue (cadangan huruf balon) #}
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:ital,wght@0,600;0,700;1,600;1,700&family=Bangers&family=Comic+Neue:wght@700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     {# utils.js berisi getCookie, escapeHtml, formatServerErrors; dimuat di head agar siap dipakai skrip halaman #}
     <script src="{% static 'js/utils.js' %}"></script>
@@ -15,26 +16,36 @@
 </head>
 <body>
     <header class="site-header">
-        <div class="container">
+        {# Bar merah ala sampul komik #}
+        <div class="masthead">
+            <div class="container">
+                <span class="masthead__issue">No. 01 · 2026 edition</span>
+                <span class="masthead__tag">PBP C · Fasilkom UI</span>
+            </div>
+        </div>
+
+        {% with current=request.resolver_match.url_name %}
+        <div class="container navbar">
             <a href="{% url 'main:show_main' %}" class="brand">Iqbal</a>
-            <nav>
-                <a href="{% url 'main:show_main' %}">Profile</a>
-                <a href="{% url 'main:show_main' %}#education">Education</a>
-                <a href="{% url 'main:show_experience' %}">Experience</a>
-                <a href="{% url 'main:project_list' %}">Projects</a>
+            <nav class="nav" aria-label="Main">
+                <a class="nav__link{% if current == 'show_main' %} is-active{% endif %}" href="{% url 'main:show_main' %}">Profile</a>
+                <a class="nav__link" href="{% url 'main:show_main' %}#education">Education</a>
+                <a class="nav__link{% if current == 'show_experience' %} is-active{% endif %}" href="{% url 'main:show_experience' %}">Experience</a>
+                <a class="nav__link{% if current == 'project_list' %} is-active{% endif %}" href="{% url 'main:project_list' %}">Projects</a>
                 {% if user.is_authenticated %}
                 <span class="nav-user">{{ user.username }}</span>
-                <a href="{% url 'main:logout' %}">Logout</a>
+                <a class="button button-small nav__auth" href="{% url 'main:logout' %}">Logout</a>
                 {% else %}
-                <a href="{% url 'main:login' %}">Login</a>
-                <a href="{% url 'main:register' %}">Register</a>
+                <a class="button button-small nav__auth" href="{% url 'main:login' %}">Login</a>
+                <a class="nav__link" href="{% url 'main:register' %}">Register</a>
                 {% endif %}
             </nav>
         </div>
+        {% endwith %}
     </header>
 
     <main>
-    {% if messages %}
+        {% if messages %}
         <div class="container">
             {% for message in messages %}
             <p class="flash-message">{{ message }}</p>
@@ -47,7 +58,8 @@
 
     <footer class="site-footer">
         <div class="container">
-            <p>&copy; 2026 Muhammad Iqbal. Fakultas Ilmu Komputer, Universitas Indonesia.</p>
+            <p>&copy; 2026 Muhammad Iqbal · 2506657075 · Fakultas Ilmu Komputer, Universitas Indonesia.</p>
+            <p class="site-footer__tbc">To be continued…</p>
         </div>
     </footer>
 

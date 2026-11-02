@@ -3,10 +3,13 @@
 {% block title %}Register - {{ name }}{% endblock title %}
 
 {% block content %}
-<section class="projects auth-section">
-    <div class="container auth-container">
+<section class="auth-section">
+    <div class="auth-container auth-container--wide">
+        <span class="caption auth-badge auth-badge--red">New recruit!</span>
+        <span class="sfx auth-sfx" aria-hidden="true">SIGN ME UP!</span>
+
         <p class="section-kicker">Akun Pengunjung</p>
-        <h2 class="section-title">Buat Akun</h2>
+        <h1 class="section-title">Buat Akun</h1>
         <form method="post" action="{% url 'main:register' %}" class="project-form">
             {% csrf_token %}
             {% for error in form.non_field_errors %}
@@ -24,7 +27,7 @@
                 {% endfor %}
             </div>
             {% endfor %}
-            <button type="submit" class="button">Daftar</button>
+            <button type="submit" class="button button-red button-block">Daftar</button>
         </form>
         <p class="auth-switch">Sudah punya akun? <a href="{% url 'main:login' %}">Login di sini</a>.</p>
     </div>

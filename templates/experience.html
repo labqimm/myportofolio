@@ -7,9 +7,13 @@
     <div class="container">
         <p class="section-kicker">Perjalanan saya sejauh ini</p>
         <h1>Experience</h1>
+        <p class="lead">How the hero got here: lectures, labs, student organisations and a lot of office hours.</p>
+
         <div class="experience-grid">
             {% for experience in experience_list %}
+            {# Tiap pengalaman = satu panel komik ("chapter") #}
             <article class="experience-card">
+                <span class="experience-chapter">Chapter {{ forloop.counter|stringformat:"02d" }}</span>
                 <span class="experience-category">
                     {{ experience.get_category_display }}
                 </span>
@@ -28,6 +32,10 @@
                 Belum ada pengalaman yang ditambahkan.
             </p>
             {% endfor %}
+        </div>
+
+        <div class="experience-cta">
+            <a class="button button-red" href="{% url 'main:project_list' %}">See what he built →</a>
         </div>
     </div>
 </section>

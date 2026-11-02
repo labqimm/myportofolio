@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}404 - Halaman tidak ditemukan{% endblock title %}
+
+{% block content %}
+{# Django otomatis memakai template ini saat halaman tidak ditemukan, TAPI hanya kalau DEBUG = False. #}
+<section class="lost">
+    <div class="burst" aria-hidden="true">
+        <div class="burst__fill"><span class="lost__code">404</span></div>
+    </div>
+    <p class="caption">Meanwhile, on a page that doesn't exist…</p>
+    <h1 class="lost__title">Lost in the gutter!</h1>
+    <p class="lost__text">Halaman ini tidak ada di edisi kali ini. Mungkin sudah dipindah, atau memang tidak pernah ada.</p>
+    <div class="forbidden-actions">
+        <a class="button button-red" href="{% url 'main:show_main' %}">← Kembali ke Profil</a>
+        <a class="button button-paper" href="{% url 'main:project_list' %}">Lihat Projects</a>
+    </div>
+    <p class="lost__note">(Gutter = ruang kosong di antara panel komik.)</p>
+</section>
+{% endblock content %}

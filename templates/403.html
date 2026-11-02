@@ -3,14 +3,15 @@
 {% block title %}403 Forbidden - Muhammad Iqbal{% endblock title %}
 
 {% block content %}
-<section class="projects auth-section">
-    <div class="container auth-container">
-        <p class="section-kicker">403 Forbidden</p>
-        <h2 class="section-title">Akses Ditolak</h2>
-        <p>Akun <strong>{{ user.username }}</strong> tidak memiliki hak untuk melakukan tindakan ini.</p>
-        <div class="forbidden-actions">
-            <a href="{% url 'main:show_main' %}" class="button">Kembali ke Profil</a>
-        </div>
+<section class="lost">
+    <div class="burst" aria-hidden="true">
+        <div class="burst__fill"><span class="lost__code">403</span></div>
+    </div>
+    <p class="section-kicker">403 Forbidden</p>
+    <h1 class="lost__title">Akses Ditolak!</h1>
+    <p class="lost__text">Akun <strong>{{ user.username }}</strong> tidak memiliki hak untuk melakukan tindakan ini.</p>
+    <div class="forbidden-actions">
+        <a href="{% url 'main:show_main' %}" class="button button-red">Kembali ke Profil</a>
     </div>
 </section>
 {% endblock content %}

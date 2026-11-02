@@ -1,31 +1,75 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block content %}
-<section class="hero" id="profile">
-    <div class="container hero-grid">
-        <div class="hero-identity">
-            <p class="hero-kicker">Computer Science &middot; Universitas Indonesia</p>
-            <h1>{{ name }}</h1>
-        </div>
-        <div class="hero-photo">
-            <div class="photo-block"></div>
-            <img class="avatar" src="{% static 'img/fotoporto.jpeg' %}" alt="Photo of {{ name }}">
-        </div>
-        <div class="hero-details">
-            <p class="bio">{{ bio }}</p>
-            <dl class="meta-list">
-                <div class="meta-row"><dt>NPM</dt><dd>{{ npm }}</dd></div>
-                <div class="meta-row"><dt>Program</dt><dd>{{ study_program }}</dd></div>
-                <div class="meta-row"><dt>Sesi Terakhir Login</dt><dd>{{ last_login }}</dd></div>
-            </dl>
-            <div class="social-links">
-                <a href="https://github.com/labqimm" class="social-link">GitHub</a>
-                <a href="https://www.linkedin.com/in/muhammad-iqballl11/" class="social-link">LinkedIn</a>
-                <a href="mailto:muhammad.iqbal517@ui.ac.id" class="social-link">Email</a>
+
+{# ===== HERO: splash komik (desain G5) ===== #}
+<section class="splash" id="profile" aria-labelledby="hero-name">
+    <span class="splash__rays" aria-hidden="true"></span>
+    <span class="splash__whoosh" aria-hidden="true">WHOOSH!</span>
+
+    <div class="container splash__inner">
+        <div class="splash__intro">
+            <p class="caption caption--paper caption--tilt letter">Meanwhile, at Fasilkom UI…</p>
+
+            <div class="hello">
+                <div class="bubble bubble--right bubble--shadow">
+                    <p class="hello__text">Hi! I'm Iqbal!</p>
+                </div>
+                <span class="hello__tag letter">CS student at UI</span>
             </div>
+
+            <p class="splash__meta letter">{{ study_program }} · Universitas Indonesia</p>
+        </div>
+
+        <figure class="photo splash__photo">
+            <div class="photo__frame">
+                <img src="{% static 'img/fotoporto.jpeg' %}" alt="Photo of {{ name }}">
+            </div>
+            <figcaption class="photo__caption letter">Starring: Iqbal</figcaption>
+            <span class="sfx photo__sfx" aria-hidden="true">POWW!</span>
+        </figure>
+    </div>
+
+    {# Pita merah dengan nama kuning #}
+    <div class="splash__ribbon">
+        <div class="container">
+            <h1 id="hero-name" class="splash__name">{{ name }}</h1>
+            <span class="splash__role letter">CS student</span>
         </div>
     </div>
 </section>
+
+{# ===== BIO + KONTAK ===== #}
+<div class="container">
+    <section class="story" aria-labelledby="story-title">
+        <div class="story__bio">
+            <h2 id="story-title" class="kicker">The story so far</h2>
+            <p class="story__text letter">{{ bio }}</p>
+        </div>
+
+        <div class="story__contact">
+            <h2 class="kicker">Contact</h2>
+            <div class="social-links">
+                <a href="mailto:muhammad.iqbal517@ui.ac.id" class="button button-red">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="1"></rect><polyline points="3 6 12 13 21 6"></polyline></svg>
+                    Email
+                </a>
+                <a href="https://github.com/labqimm" class="button button-paper">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 6 2 12 8 18"></polyline><polyline points="16 6 22 12 16 18"></polyline></svg>
+                    GitHub
+                </a>
+                <a href="https://www.linkedin.com/in/muhammad-iqballl11/" class="button button-paper">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="1"></rect><path d="M8 7V4h8v3"></path></svg>
+                    LinkedIn
+                </a>
+            </div>
+            {# Tutorial 04: waktu login terakhir dari cookie #}
+            <p class="last-login"><span>Sesi terakhir login</span> {{ last_login }}</p>
+        </div>
+    </section>
+</div>
+
+{# ===== EDUCATION ===== #}
 {# Tugas 5: section ini hanya kerangka. Isi timeline diambil static/js/education.js lewat /api/education/. #}
 {# data-* dipakai untuk mengoper URL & peran ke file .js, karena tag Django tidak jalan di file static. #}
 <section class="education" id="education"
@@ -68,6 +112,15 @@
         <div id="education-timeline" class="timeline hide" aria-live="polite"></div>
     </div>
 </section>
+
+{# ===== LINK KE HALAMAN LAIN ===== #}
+<div class="container">
+    <nav class="turn-page" aria-label="Read next">
+        <p class="kicker">Turn the page</p>
+        <a class="big-link" href="{% url 'main:project_list' %}">Projects <span class="big-link__arrow" aria-hidden="true">→</span></a>
+        <a class="big-link big-link--cyan" href="{% url 'main:show_experience' %}">Experience <span class="big-link__arrow" aria-hidden="true">→</span></a>
+    </nav>
+</div>
 
 {% if user.is_superuser %}
 {% include "components/education_form_modal.html" %}

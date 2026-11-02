@@ -1,0 +1,19 @@
+FONT HURUF BALON KOMIK
+======================
+
+Folder ini untuk file font "VTC Letterer Pro" (gratis, boleh dipakai di web).
+
+1. Download dari: https://www.fontsquirrel.com/fonts/vtc-letterer-pro
+2. Ekstrak zip-nya, ambil file .ttf (atau .woff / .woff2 kalau ada).
+3. Ganti nama file menjadi salah satu ini:
+      vtc-letterer-pro.ttf
+      vtc-letterer-pro.woff
+      vtc-letterer-pro.woff2
+4. Taruh di folder ini (static/fonts/).
+
+Kalau file font belum ada, website tetap jalan: teks otomatis memakai
+"Comic Neue" dari Google Fonts sebagai cadangan.
+
+Mau persis seperti contoh gambar (Son of Toom / TOOM)?
+Font itu berbayar (RetroSupply). Kalau sudah beli, cek dulu lisensinya boleh
+untuk web, lalu ganti nama file-nya seperti langkah 3.
