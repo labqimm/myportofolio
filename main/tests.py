@@ -81,7 +81,8 @@ class ProjectListViewTest(TestCase):
         response = self.client.get(self.url)
         for element_id in ('id="grid"', 'id="loading"', 'id="error"', 'id="empty"'):
             self.assertContains(response, element_id)
-        self.assertContains(response, reverse('main:get_projects_json'))
+        # Tutorial 07: halaman Projects sekarang mengambil data dari API DRF
+        self.assertContains(response, reverse('api:project-list'))
 
     def test_api_filters_by_title(self):
         Project.objects.create(title='Django Blog', description='-', tech_stack='Django', year=2025)

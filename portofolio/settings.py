@@ -29,7 +29,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-np!$o&(yyh_d+saz01(zb4nrcw%p=h1338fp17b7b)^cpwzqxa'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = not PRODUCTION
 ALLOWED_HOSTS = ["localhost", "127.0.0.1","muhammad-iqbal517-myportofolio.pws.cs.ui.ac.id"]
 CSRF_TRUSTED_ORIGINS = ["https://muhammad-iqbal517-myportofolio.pws.cs.ui.ac.id"]
 
@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'main',
+    'contacts',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [

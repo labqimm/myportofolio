@@ -6,3 +6,4 @@ psycopg2-binary
 gunicorn
 python-dotenv
 whitenoise
+djangorestframework~=3.18.3
