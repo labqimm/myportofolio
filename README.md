@@ -2,9 +2,16 @@ Nama : Muhammad Iqbal
 NPM : 2506657075
 Kelas : PBP C
 
+## Deskripsi Proyek
+Website portofolio pribadi berbasis Django: profil, riwayat pendidikan (Education), pengalaman, dan proyek.
+Fitur: CRUD Education & Project, endpoint JSON, autentikasi (register/login/logout), peran
+(pengunjung, user, editor, pemilik), star, serta pemuatan data, pencarian, dan penambahan data lewat AJAX.
+
+Deploy: https://muhammad-iqbal517-myportofolio.pws.cs.ui.ac.id
+
 [LOG] latihan branch 1
 
-[TUGAS 1]
+### Tugas 1
 1. Saya pakai beberapa elemen semantik seperti header, nav, main, section, dan footer supaya struktur halamannya jelas, bagian mana yang navigasi, bagian mana isi utama, bagian mana yang footer dibanding  pakai div semua. 
 
 2. Tantangan yang saya rasakan adalah menentukan urutan tampilan waktu pindah dari desktop ke HP. Di desktop, foto dan teks bisa disandingkan jadi dua kolom, tapi di layar kecil semuanya harus ditumpuk jadi satu kolom, 
@@ -27,9 +34,8 @@ Kontribusi saya ada pada ide saya untuk membuat section education, dimana sectio
 Menurut saya AI sudah memberikan hasil yang sangat memuaskan bahkan melampaui batasan saya, oleh karena itu saya tidak setuju dengan usulan AI yang terlalu advanced dalam level saya sehingga saya meminta untuk dikerjakan sesuai dengan kemampuan saya agar saya bisa belajar sendiri.
 
 >Log Percakapan:  https://claude.ai/share/76622cb9-754d-4495-85e5-5583a65306af
-[TUGAS 1]
 
-[TUGAS 2]
+### Tugas 2
 1. Saat buka halaman portofolio misal /projects/, django akan memproses permintaan tersebut melalui beberapa tahap.Pertama request ke urls.py proyek, untuk ditentukan aplikasi mana yang akan menangani url tersebut lalu diteruskan ke urls.py aplikasi.Di main/urls.py django mencari URL yang cocok lalu menjalakan view untuk mengatur logika halaman , jika butuh data view akan mengambil dari model.Model berhubungan dengan database dan menyimpan data ,lalu data tersebut diberikan oleh view kepada template melalui context.terakhir template mengatur bagaimana data ditampilkan dalam HTML. Django mengirimkan ke browser untuk dilihat pengguna 
 Alurnya 
 >Browser → urls.py proyek → urls.py aplikasi → View → Model → View → Template → Browser
@@ -53,7 +59,7 @@ Saya mengubah file yang diarahkan dan melakukan makemigrate dan migration untuk 
 
 Link Chat AI: https://claude.ai/share/c5aa6d61-2e5a-4b1a-953b-c421088fcf75
 
-[TUGAS 3]
+### Tugas 3
 1. ModelForm dipakai karena form dibuat otomatis dari model, sehingga field, tipe input, dan validasinya (misalnya angka wajib angka, panjang maksimal teks) langsung mengikuti model. Kalau form HTML dibuat manual, kita harus menulis setiap input dan mengecek datanya satu per satu, dan kalau model berubah, form juga harus diubah manual. Dengan ModelForm, data yang sudah valid cukup disimpan dengan form.save(), bahkan untuk update cukup menambahkan instance=. {% csrf_token %} wajib ditambahkan untuk mencegah serangan CSRF (Cross-Site Request Forgery), yaitu ketika website lain diam-diam mengirim request POST ke website kita atas nama pengguna. Token ini berupa kode acak yang hanya diketahui halaman kita, sehingga Django menolak request POST yang tidak membawa token yang benar.
 
 2. JSON lebih disukai karena formatnya lebih ringkas dan mudah dibaca manusia, ukuran datanya lebih kecil daripada XML yang harus membuka dan menutup tag untuk setiap data, dan strukturnya (objek dan array) sama dengan objek di JavaScript sehingga bisa langsung dipakai di browser tanpa parsing yang rumit. Hampir semua bahasa pemrograman dan API modern juga sudah mendukung JSON secara bawaan.
@@ -72,7 +78,7 @@ Bagian yang saya kerjakan sendiri: Memilih bagian Education, menjalankan migrasi
 
 LINK CHAT AI: https://claude.ai/share/11e0fbad-a6c4-4a0a-8f8e-9172425a265a
 
-[TUGAS 4]
+### Tugas 4
 AI Disclosure:
 
 Tools yang digunakan: Claude (Anthropic)
@@ -84,3 +90,23 @@ Strategi Prompting: Saya memberikan PDF Tutorial 1–4 dan Tugas 2–4 serta rep
 Bagian yang saya kerjakan sendiri:Membuat superuser, memasukkan akun ke editor, test secara manual fitur di browser , deploy pws. 
 
 LINK CHAT AI: https://claude.ai/artifact/B3xMx5cb4UBkZnJ5Jk1aAQ
+
+### Tugas 5
+1. Debouncing adalah teknik menunda eksekusi suatu fungsi sampai pengguna berhenti memicu event selama jeda tertentu. Di halaman Education, setiap ketikan me-reset timer 300 ms, jadi request ke /api/education/?q=... baru dikirim setelah pengguna berhenti mengetik. Tanpa debouncing, mengetik "indonesia" mengirim 9 request sekaligus: server terbebani, kuota internet boros, dan hasil pencarian bisa datang tidak berurutan sehingga hasil lama menimpa hasil baru. Untuk kasus terakhir saya juga memakai AbortController untuk membatalkan request lama.
+
+2. fetch() tidak langsung mengembalikan data, melainkan Promise (janji bahwa hasilnya akan ada nanti), karena request ke server butuh waktu. await membuat fungsi async menunggu Promise itu selesai lalu memberikan hasilnya (objek Response). Setelah itu response.json() juga perlu di-await karena membaca isi balasan juga asinkron. Tanpa await, variabel hanya berisi Promise yang belum selesai: response.ok bernilai undefined, response.json() tidak bisa dipakai sebagaimana mestinya, dan kode di bawahnya berjalan duluan sebelum data datang, sehingga data tidak tampil atau muncul error. await tidak membekukan seluruh halaman; hanya fungsi async itu yang menunggu.
+
+3. XSS (Cross-Site Scripting) adalah serangan ketika penyerang menyisipkan kode (misalnya <img src="x" onerror="alert('XSS!')">) ke dalam data, lalu kode itu ikut dijalankan di browser orang lain yang membuka halaman tersebut. Akibatnya bisa berupa pencurian cookie/session atau aksi atas nama korban. Template Django otomatis meng-escape {{ variabel }}, sehingga karakter < > diubah menjadi teks biasa. Sebaliknya, data yang disisipkan JavaScript lewat innerHTML tidak di-escape otomatis; browser menganggap string tersebut sebagai HTML lalu menjalankannya. Karena itu saya meng-escape setiap nilai dengan escapeHtml/textContent di sisi klien dan membersihkan input dengan strip_tags di clean_institution/clean_major di sisi server (dua lapis pertahanan).
+
+AI Disclosure:
+
+Tools yang digunakan: Claude (Anthropic)
+
+Bagian yang dibantu AI: AI membaca repo GitHub saya, lalu membantu memindahkan getCookie/escapeHtml ke static/js/utils.js, membuat endpoint JSON Education manual (star + pencarian), view create_education_ajax (201/400/403), modal tambah dan modal hapus bersama, static/js/education.js (fetch, debounce, toast, escape), clean_<field> dengan strip_tags, penyesuaian 4 test lama dan 8 test baru, setup guide README
+
+Strategi Prompting: Saya memberikan PDF Tugas 5 dan meminta AI mengerjakan langkah demi langkah dengan kode yang saya salin manual, menjelaskan alurnya, memperbaiki kekurangan tugas sebelumnya, dan bertanya jika konteks kurang.
+
+Bagian yang saya kerjakan sendiri:Saya menjalan runserver untuk melihat berjalnkan atau tidak, melakukan testing serta membuat commit dan branching yang rapih
+
+
+LINK CHAT AI: https://claude.ai/share/68257ee7-a08a-449d-b71c-62a9e1462b04
