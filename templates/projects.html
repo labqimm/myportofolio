@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+
+{% block title %}Projects — Muhammad Iqbal{% endblock %}
+
+{% block content %}
+<main class="container">
+
+    <section class="page-head">
+        <div class="page-head__text">
+            <span class="tag">Back-issue archive</span>
+            <h1 class="page-title">Projects</h1>
+            <p class="lead">Every build so far, collected like back issues: team projects, coursework, and the very site you're reading.</p>
+        </div>
+        {% if user.is_authenticated %}
+        <!-- Ganti href="#" ke URL form tambah proyek kalau nanti sudah dibuat -->
+        <a class="btn btn--red" href="#">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            New project
+        </a>
+        {% endif %}
+    </section>
+
+    <div class="filters" role="group" aria-label="Filter projects">
+        {% for f in filters %}
+        <button type="button" class="chip" data-filter="{{ f.key }}" aria-pressed="{% if forloop.first %}true{% else %}false{% endif %}">{{ f.label }} · {{ f.count }}</button>
+        {% endfor %}
+    </div>
+
+    <div class="card-grid">
+        {% for project in projects %}
+        <article class="issue-card" data-tags="{{ project.tags|join:' ' }}">
+            <div class="issue-card__cover cover--{{ project.cover_style }}">
+                <span class="tag issue-card__no">No. {{ project.no }}</span>
+                <span class="tag tag--paper issue-card__kind">{{ project.kind }}</span>
+                <span class="issue-card__art" aria-hidden="true">{{ project.cover }}</span>
+            </div>
+            <div class="issue-card__body">
+                <h2 class="issue-card__title">{{ project.title }}</h2>
+                <p class="issue-card__desc">{{ project.desc }}</p>
+                <p class="issue-card__role"><span>My part:</span> {{ project.role }}</p>
+                <ul class="chips">
+                    {% for chip in project.chips %}<li>{{ chip }}</li>{% endfor %}
+                </ul>
+                <a class="btn btn--yellow" href="{% url 'project_detail' project.slug %}">Read issue →</a>
+            </div>
+        </article>
+        {% endfor %}
+
+        <div class="next-issue" data-next-issue>
+            <span class="tag">Next issue</span>
+            <span class="next-issue__title">Coming soon…</span>
+            <p>Still being inked. Check back after the next deadline.</p>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+{# Tutorial 07: memastikan cookie csrftoken selalu dibuat, karena script baru tidak lagi memakai form star/hapus #}
+{% csrf_token %}
+<script>
+    // getCookie, escapeHtml -> static/js/utils.js | showToast -> static/js/toast.js (dimuat di base.html)
+
+    // ---------- Konfigurasi (URL dari Django, id dummy 0 nanti diganti id asli) ----------
+    const BASE_PROJECTS_ENDPOINT = "{% url 'api:project-list' %}";
+    const DETAIL_PROJECT_ENDPOINT = "{% url 'api:project-detail' 0 %}";
+    const STAR_PROJECT_ENDPOINT = "{% url 'api:project-star' 0 %}";
+    const LOGIN_URL = "{% url 'main:login' %}?next={% url 'main:project_list' %}";
+    const IS_SUPERUSER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
+    const IS_AUTHENTICATED = "{{ user.is_authenticated|yesno:'true,false' }}" === "true";
+
+    // ---------- Elemen DOM ----------
+    const loadingState = document.getElementById('loading');
+    const errorState = document.getElementById('error');
+    const emptyState = document.getElementById('empty');
+    const emptyMessage = document.getElementById('empty-message');
+    const gridContainer = document.getElementById('grid');
+    const searchForm = document.getElementById('project-search-form');
+    const searchInput = document.getElementById('search-input');
+    const projectForm = document.getElementById('project-form'); // null kalau bukan superuser
+    const SEARCH_DEBOUNCE_DELAY = 300;
+    let projectsAbortController;
+    let searchDebounceTimer;
+
+    function projectEndpoint(pattern, id) {
+        return pattern.replace('/0/', `/${id}/`);
+    }
+
+    function displayPageSection({ showLoading = false, showError = false, showEmpty = false, showGrid = false }) {
+        loadingState.classList.toggle('hide', !showLoading);
+        errorState.classList.toggle('hide', !showError);
+        emptyState.classList.toggle('hide', !showEmpty);
+        gridContainer.classList.toggle('hide', !showGrid);
+    }
+
+    // Kontrak baru (DRF): data proyek langsung di objek -> project.title, project.id (bukan item.fields / item.pk)
+    function buildProjectCardElement(project) {
+        const article = document.createElement('article');
+        article.className = 'project-card' + (project.is_featured ? ' project-card-featured' : '');
+
+        const featuredHtml = project.is_featured ? '<span class="project-badge">Featured</span>' : '';
+        const repoHtml = project.repo_url
+            ? `<a class="social-link" href="${escapeHtml(project.repo_url)}">Repository</a>`
+            : '';
+        const starTitle = project.star_count > 0
+            ? `Dibintangi oleh ${escapeHtml(project.starred_by_names)}`
+            : 'Jadilah yang pertama memberi star';
+
+        // Tombol pakai data-action + data-id; diklik -> ditangani satu listener di gridContainer
+        const starHtml = IS_AUTHENTICATED
+            ? `<button type="button" class="button button-star${project.is_starred ? ' is-starred' : ''}"
+                    data-action="star" data-id="${escapeHtml(project.id)}" title="${starTitle}">
+                    <span aria-hidden="true">&#9733;</span>
+                    ${project.is_starred ? 'Unstar' : 'Star'}
+                    <span class="star-count">${escapeHtml(project.star_count)}</span>
+               </button>`
+            : `<a href="${LOGIN_URL}" class="button button-star" title="Login untuk memberi star">
+                    <span aria-hidden="true">&#9733;</span> Login untuk star
+                    <span class="star-count">${escapeHtml(project.star_count)}</span>
+               </a>`;
+        const deleteHtml = IS_SUPERUSER
+            ? `<button type="button" class="button button-danger"
+                    data-action="delete" data-id="${escapeHtml(project.id)}">Hapus</button>`
+            : '';
+
+        article.innerHTML = `
+            <div class="project-cover" aria-hidden="true">
+                <span class="project-cover__title">${escapeHtml(project.title)}</span>
+            </div>
+            <div class="project-body">
+                <div class="project-meta">
+                    <p class="project-year">${escapeHtml(project.year)}</p>
+                    ${featuredHtml}
+                </div>
+                <h3 class="project-title">${escapeHtml(project.title)}</h3>
+                <p class="project-desc">${escapeHtml(project.description)}</p>
+                <p class="project-tech">${escapeHtml(project.tech_stack)}</p>
+                ${repoHtml}
+                <div class="project-actions">
+                    ${starHtml}
+                    ${deleteHtml}
+                </div>
+            </div>
+        `;
+        return article;
+    }
+
+    // ---------- GET daftar proyek ----------
+    async function fetchProjects(searchQuery = '') {
+        if (projectsAbortController) projectsAbortController.abort();
+        projectsAbortController = new AbortController();
+        try {
+            displayPageSection({ showLoading: true });
+            const url = new URL(BASE_PROJECTS_ENDPOINT, window.location.origin);
+            if (searchQuery) url.searchParams.set('title', searchQuery);
+            const response = await fetch(url, {
+                headers: { Accept: 'application/json' },
+                signal: projectsAbortController.signal,
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const projects = await response.json();
+
+            gridContainer.replaceChildren(...projects.map(buildProjectCardElement));
+            emptyMessage.textContent = searchQuery
+                ? 'Tidak ada proyek dengan nama tersebut.'
+                : 'Belum ada proyek yang ditambahkan.';
+            displayPageSection({ showGrid: projects.length > 0, showEmpty: projects.length === 0 });
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            console.error(error);
+            displayPageSection({ showError: true });
+        }
+    }
+
+    // ---------- Pesan error dari DRF ----------
+    // Bentuk error DRF: {"title": ["..."]} (validasi) atau {"detail": "..."} (403/404/405)
+    function apiErrorMessage(data, status) {
+        const messages = Object.values(data).flat().filter(value => typeof value === 'string');
+        return messages.join(' ') || `Request failed (HTTP ${status}).`;
+    }
+
+    // ---------- Satu fungsi untuk semua request tulis: POST / PATCH / PUT / DELETE ----------
+    async function writeProject(url, method, payload) {
+        const response = await fetch(url, {
+            method,
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: payload === undefined ? undefined : JSON.stringify(payload),
+        });
+        if (response.status === 204) return null; // DELETE berhasil: body kosong, jangan .json()
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(apiErrorMessage(data, response.status));
+        return data;
+    }
+
+    // ---------- Tambah proyek (modal) ----------
+    async function addProject(event) {
+        event.preventDefault();
+        const button = projectForm.querySelector('button[type="submit"]');
+        button.disabled = true;
+        try {
+            const fields = new FormData(projectForm);
+            // Pilih field model secara eksplisit -> csrfmiddlewaretoken tidak ikut terkirim
+            const payload = Object.fromEntries(
+                ['title', 'description', 'tech_stack', 'year', 'repo_url'].map(name => [name, fields.get(name)])
+            );
+            // Checkbox yang tidak dicentang tidak masuk FormData, jadi baca .checked langsung
+            payload.is_featured = projectForm.elements.is_featured.checked;
+
+            await writeProject(BASE_PROJECTS_ENDPOINT, 'POST', payload);
+            projectForm.reset();
+            document.getElementById('add-project-modal').hidePopover();
+            showToast('Berhasil', 'Proyek baru berhasil ditambahkan!', 'success');
+            await fetchProjects(searchInput.value.trim());
+        } catch (error) {
+            showToast('Gagal menambahkan proyek', error.message, 'error');
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+    if (projectForm) projectForm.addEventListener('submit', addProject);
+
+    // ---------- Star & Hapus (event delegation) ----------
+    gridContainer.addEventListener('click', async function (event) {
+        const button = event.target.closest('button[data-action]');
+        if (!button || button.disabled) return;
+        const action = button.dataset.action;
+        if (action === 'delete' && !window.confirm('Yakin ingin menghapus project ini?')) return;
+
+        button.disabled = true; // cegah klik ganda (star = toggle)
+        try {
+            const pattern = action === 'star' ? STAR_PROJECT_ENDPOINT : DETAIL_PROJECT_ENDPOINT;
+            await writeProject(projectEndpoint(pattern, button.dataset.id), action === 'star' ? 'POST' : 'DELETE');
+            showToast('Berhasil', action === 'star' ? 'Star diperbarui.' : 'Proyek dihapus.', 'success');
+            await fetchProjects(searchInput.value.trim());
+        } catch (error) {
+            showToast('Request gagal', error.message, 'error');
+        } finally {
+            button.disabled = false;
+        }
+    });
+
+    // ---------- Pencarian (debounce 300 ms) ----------
+    searchInput.addEventListener('input', function () {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => fetchProjects(searchInput.value.trim()), SEARCH_DEBOUNCE_DELAY);
+    });
+    searchForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        clearTimeout(searchDebounceTimer);
+        fetchProjects(searchInput.value.trim());
+    });
+
+    // ---------- Mulai ----------
+    fetchProjects(searchInput.value.trim());
+</script>
+{% endblock %}

@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ project.title }} — Muhammad Iqbal{% endblock %}
+
+{% block content %}
+<main class="container">
+
+    <a class="back-link" href="{% url 'projects' %}">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="11 6 5 12 11 18"></polyline></svg>
+        All projects
+    </a>
+
+    <!-- HERO PROYEK -->
+    <section class="detail-hero" aria-labelledby="project-title">
+        <div class="detail-hero__text">
+            <p class="caption">{{ project.issue_label }}</p>
+            <h1 id="project-title" class="detail-title">{{ project.title }}</h1>
+            <p class="role-tag">{{ project.role_tag }}</p>
+            <p class="detail-hero__lead">{{ project.lead }}</p>
+
+            {% if project.demo_url or project.repo_url %}
+            <div class="btn-row">
+                {% if project.demo_url %}
+                <a class="btn btn--red" href="{{ project.demo_url }}">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+                    Live demo
+                </a>
+                {% endif %}
+                {% if project.repo_url %}
+                <a class="btn" href="{{ project.repo_url }}">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 6 2 12 8 18"></polyline><polyline points="16 6 22 12 16 18"></polyline></svg>
+                    Repository
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="detail-hero__shot">
+            <div class="screenshot">
+                {% if project.image %}
+                    <img src="{% static project.image %}" alt="Screenshot of {{ project.title }}">
+                {% else %}
+                    <span class="screenshot__placeholder">[ Screenshot ]</span>
+                {% endif %}
+            </div>
+            {% if project.sfx %}<span class="sfx detail-hero__sfx" aria-hidden="true">{{ project.sfx }}</span>{% endif %}
+        </div>
+    </section>
+
+    <!-- CARA KERJA (opsional) -->
+    {% if project.steps %}
+    <section class="detail-section" aria-labelledby="how-title">
+        <div class="section-head"><h2 id="how-title">How it works</h2></div>
+        <ol class="steps">
+            {% for step in project.steps %}
+            <li class="step">
+                <div class="step__art">
+                    <span class="corner-caption">Panel {{ forloop.counter }}</span>
+                    <span class="label" style="color: var(--ink-soft)">[ Screenshot ]</span>
+                </div>
+                <div class="step__body">
+                    <span class="step__title">{{ step.title }}</span>
+                    <span class="step__desc">{{ step.desc }}</span>
+                </div>
+            </li>
+            {% endfor %}
+        </ol>
+    </section>
+    {% endif %}
+
+    <div class="detail-row">
+        <!-- BAGIAN YANG DIKERJAKAN -->
+        <section class="panel detail-row__main" aria-labelledby="part-title">
+            <h2 id="part-title">My part</h2>
+            <ul class="part-list">
+                {% for part in project.parts %}
+                <li>
+                    <span class="part-list__no{% if part.planned %} part-list__no--planned{% endif %}">{{ forloop.counter }}</span>
+                    <span>
+                        <span class="part-list__name">{{ part.name }}{% if part.planned %}<span class="tag">Planned</span>{% endif %}</span>
+                        <span class="part-list__desc">{{ part.desc }}</span>
+                    </span>
+                </li>
+                {% endfor %}
+            </ul>
+        </section>
+
+        <!-- KREDIT -->
+        <aside class="panel panel--ink detail-row__side" aria-label="Project facts">
+            <p class="kicker" style="color: var(--yellow)">Issue credits</p>
+            <dl class="stats" style="margin-top: 16px">
+                {% for fact in project.facts %}
+                <div>
+                    <dt>{{ fact.label }}</dt>
+                    <dd>{{ fact.value }}</dd>
+                </div>
+                {% endfor %}
+                <div>
+                    <dt>Stack</dt>
+                    <dd>
+                        <ul class="chips chips--light" style="margin-top: 6px">
+                            {% for item in project.stack %}<li>{{ item }}</li>{% endfor %}
+                        </ul>
+                    </dd>
+                </div>
+            </dl>
+        </aside>
+    </div>
+
+    <!-- NAVIGASI ANTAR PROYEK -->
+    <nav class="issue-nav" aria-label="More issues">
+        {% if prev_project %}
+            <a class="btn" href="{% url 'project_detail' prev_project.slug %}">← {{ prev_project.title }}</a>
+        {% else %}
+            <a class="btn" href="{% url 'projects' %}">← Back-issue archive</a>
+        {% endif %}
+        {% if next_project %}
+            <a class="btn btn--yellow" href="{% url 'project_detail' next_project.slug %}">Next issue: {{ next_project.title }} →</a>
+        {% endif %}
+    </nav>
+</main>
+{% endblock %}
