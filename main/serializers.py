@@ -19,6 +19,19 @@ class ProjectSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id"]
 
+                # Pesan bawaan DRF berbahasa Inggris; diganti supaya toast di halaman mudah dipahami
+        extra_kwargs = {
+            "institution": {"error_messages": {
+                "blank": "Nama institusi wajib diisi.", "required": "Nama institusi wajib diisi.",
+            }},
+            "level": {"error_messages": {"invalid_choice": "Jenjang \"{input}\" tidak tersedia."}},
+            "start_year": {"error_messages": {
+                "invalid": "Tahun masuk harus berupa angka.", "required": "Tahun masuk wajib diisi.",
+                "null": "Tahun masuk wajib diisi.",
+            }},
+            "end_year": {"error_messages": {"invalid": "Tahun lulus harus berupa angka."}},
+        }
+
     # validate_<field> = padanan clean_<field> di ProjectForm (serializer TIDAK menjalankan form)
     def validate_title(self, value):
         value = strip_tags(value).strip()

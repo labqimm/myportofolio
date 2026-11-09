@@ -16,9 +16,15 @@ class IsPortfolioOwnerOrReadOnly(BasePermission):
 
 
 class IsPortfolioOwnerOrEditorOrReadOnly(BasePermission):
-    """Untuk bagian pilihan tugas (Education): Editor boleh PUT/PATCH, pemilik boleh semuanya."""
+    """Hak akses bagian Education (Tugas 6), sama dengan empat peran Tugas 4.
 
-    message = "Only the portfolio owner or an editor can change this data."
+    - Pengunjung & pengguna biasa : hanya GET/HEAD/OPTIONS (SAFE_METHODS).
+    - Editor (grup "Editor")      : + PUT/PATCH, tetapi tidak boleh POST/DELETE.
+    - Pemilik (superuser)         : semua method.
+    Star tidak memakai class ini, tetapi IsAuthenticated di view education_star.
+    """
+
+    message = "Hanya pemilik portofolio yang dapat menambah atau menghapus data; Editor hanya dapat mengubahnya."
 
     def has_permission(self, request, view):
         if request.method in SAFE_METHODS:
