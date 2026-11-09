@@ -909,7 +909,26 @@ a:hover {
   outline: 3px solid var(--cyan);
   outline-offset: 2px;
 }
+/* Tugas 6 (fitur ekstra): dropdown filter jenjang & urutan di samping kotak cari */
+.project-search__select {
+  flex: 0 0 auto;
+  cursor: pointer;
+}
 
+/* Jumlah hasil di bawah form cari, mis. "3 riwayat pendidikan" */
+.result-count {
+  margin: -16px 0 20px;
+  font-family: var(--font-label);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.result-count:empty {
+  display: none;
+}
 .empty-state {
   font-family: var(--font-label);
   font-style: italic;

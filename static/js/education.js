@@ -10,6 +10,12 @@
  * 6. User login memberi star -> POST   /api/v1/education/<id>/star/  (200 / 403)
  * Setelah setiap aksi berhasil, daftar dimuat ulang tanpa me-reload halaman.
  *
+ * Fitur ekstra (di luar instruksi Tugas 6):
+ * - Filter jenjang & urutan -> GET /api/v1/education/?q=...&level=s1&ordering=-start_year
+ * - Jumlah hasil ditampilkan di bawah form cari.
+ * - Error validasi 400 tampil di bawah input yang salah (selain di toast).
+ * - Star hanya memperbarui kartu yang diklik (pakai data balasan API), tanpa memuat ulang daftar.
+ *
  * Fungsi getCookie, escapeHtml, dan formatApiErrors berasal dari static/js/utils.js,
  * sedangkan showToast berasal dari static/js/toast.js.
  */
@@ -39,6 +45,9 @@
     const retryButton = document.getElementById('education-retry');
     const searchForm = document.getElementById('education-search-form');
     const searchInput = document.getElementById('education-search-input');
+    const levelFilter = document.getElementById('education-level-filter');
+    const orderingSelect = document.getElementById('education-ordering');
+    const resultCount = document.getElementById('education-count');
     // Elemen di bawah hanya dirender untuk peran tertentu -> bisa null
     const addForm = document.getElementById('education-form');                 // pemilik
     const editModal = document.getElementById('edit-education-modal');         // editor & pemilik
@@ -57,8 +66,13 @@
         return templateUrl.replace('/0/', `/${id}/`);
     }
 
-    function currentQuery() {
-        return searchInput.value.trim();
+    /** Membaca isi kotak cari + dua dropdown, mis. { q: 'ui', level: 's1', ordering: '-start_year' }. */
+    function currentFilters() {
+        return {
+            q: searchInput.value.trim(),
+            level: levelFilter.value,
+            ordering: orderingSelect.value,
+        };
     }
 
     /** Menampilkan satu kondisi (loading/error/empty/timeline) dan menyembunyikan sisanya. */
@@ -86,8 +100,57 @@
         });
         if (response.status === 204) return null; // DELETE berhasil: body kosong, jangan .json()
         const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(formatApiErrors(data, response.status));
+        if (!response.ok) {
+            const error = new Error(formatApiErrors(data, response.status));
+            // Simpan isi error per field (bentuk DRF) supaya bisa ditampilkan di bawah input
+            error.fieldErrors = response.status === 400 ? data : {};
+            throw error;
+        }
         return data;
+    }
+
+    // ---------- Fitur ekstra: error per field di dalam modal ----------
+    /** Menghapus semua pesan error lama di sebuah form. */
+    function clearFieldErrors(form) {
+        form.querySelectorAll('.js-field-error').forEach(el => el.remove());
+        form.querySelectorAll('.is-invalid').forEach(input => {
+            input.classList.remove('is-invalid');
+            input.removeAttribute('aria-invalid');
+        });
+    }
+
+    /**
+     * Menampilkan pesan error 400 dari serializer tepat di bawah input yang salah.
+     * Contoh fieldErrors: { end_year: ["Tahun lulus tidak boleh sebelum tahun masuk."] }
+     */
+    function showFieldErrors(form, fieldErrors = {}) {
+        clearFieldErrors(form);
+        EDUCATION_FIELDS.forEach(name => {
+            const messages = fieldErrors[name];
+            const input = form.elements[name];
+            if (!messages || !input) return;
+            input.classList.add('is-invalid');
+            input.setAttribute('aria-invalid', 'true');
+            const errorText = document.createElement('p');
+            errorText.className = 'form-error js-field-error';
+            errorText.textContent = [].concat(messages).join(' '); // textContent -> aman dari XSS
+            input.insertAdjacentElement('afterend', errorText);
+        });
+        // Fokus ke input pertama yang salah supaya pengguna langsung bisa memperbaikinya
+        const firstInvalid = form.querySelector('.is-invalid');
+        if (firstInvalid) firstInvalid.focus();
+    }
+
+    /** Pesan error di sebuah input hilang begitu pengguna mulai memperbaikinya. */
+    function clearErrorOnInput(form) {
+        form.addEventListener('input', (event) => {
+            const input = event.target;
+            if (!input.classList.contains('is-invalid')) return;
+            input.classList.remove('is-invalid');
+            input.removeAttribute('aria-invalid');
+            const errorText = input.nextElementSibling;
+            if (errorText && errorText.classList.contains('js-field-error')) errorText.remove();
+        });
     }
 
     /** Mengambil nilai field model dari sebuah form lalu mengubahnya menjadi objek JSON. */
@@ -156,16 +219,21 @@
         return article;
     }
 
-    // ---------- GET daftar pendidikan (+ pencarian ?q=) ----------
-    async function fetchEducations(query = '') {
+    // ---------- GET daftar pendidikan (+ pencarian ?q=, filter ?level=, urutan ?ordering=) ----------
+    async function fetchEducations() {
+        const filters = currentFilters();
         // Batalkan request lama supaya hasil pencarian lama tidak menimpa yang baru
         if (abortController) abortController.abort();
         abortController = new AbortController();
 
         showState({ loading: true });
+        resultCount.textContent = '';
         try {
             const url = new URL(LIST_URL, window.location.origin);
-            if (query) url.searchParams.set('q', query);
+            // Hanya parameter yang terisi yang dikirim, mis. /api/v1/education/?level=s1&ordering=-start_year
+            Object.entries(filters).forEach(([key, value]) => {
+                if (value) url.searchParams.set(key, value);
+            });
             const response = await fetch(url, {
                 headers: { 'Accept': 'application/json' },
                 signal: abortController.signal,
@@ -177,13 +245,16 @@
             educations.forEach(edu => educationById.set(String(edu.id), edu));
 
             if (educations.length === 0) {
-                emptyMessage.textContent = query
-                    ? `Tidak ada riwayat pendidikan yang cocok dengan "${query}".` // textContent -> aman
-                    : 'Belum ada riwayat pendidikan yang ditambahkan.';
+                emptyMessage.textContent = filters.q
+                    ? `Tidak ada riwayat pendidikan yang cocok dengan "${filters.q}".` // textContent -> aman
+                    : filters.level
+                        ? 'Tidak ada riwayat pendidikan untuk jenjang ini.'
+                        : 'Belum ada riwayat pendidikan yang ditambahkan.';
                 showState({ empty: true });
                 return;
             }
             timeline.replaceChildren(...educations.map(buildTimelineItem));
+            resultCount.textContent = `${educations.length} riwayat pendidikan`;
             showState({ list: true });
         } catch (error) {
             if (error.name === 'AbortError') return; // dibatalkan sengaja, bukan error
@@ -195,14 +266,17 @@
     // ---------- Pencarian dengan debouncing ----------
     searchInput.addEventListener('input', () => {
         clearTimeout(searchDebounceTimer);
-        searchDebounceTimer = setTimeout(() => fetchEducations(currentQuery()), SEARCH_DEBOUNCE_DELAY);
+        searchDebounceTimer = setTimeout(fetchEducations, SEARCH_DEBOUNCE_DELAY);
     });
     searchForm.addEventListener('submit', (event) => {
         event.preventDefault(); // jangan reload halaman
         clearTimeout(searchDebounceTimer);
-        fetchEducations(currentQuery());
+        fetchEducations();
     });
-    retryButton.addEventListener('click', () => fetchEducations(currentQuery()));
+    // Dropdown tidak perlu debounce: request dikirim sekali setiap pilihannya berubah
+    levelFilter.addEventListener('change', fetchEducations);
+    orderingSelect.addEventListener('change', fetchEducations);
+    retryButton.addEventListener('click', fetchEducations);
 
     // ---------- Tambah (POST) — hanya pemilik ----------
     async function addEducation(event) {
@@ -212,22 +286,28 @@
         try {
             await sendWriteRequest(LIST_URL, 'POST', formToPayload(addForm));
             addForm.reset();
+            clearFieldErrors(addForm);
             document.getElementById('add-education-modal').hidePopover();
             showToast('Berhasil', 'Riwayat pendidikan berhasil ditambahkan.', 'success');
-            await fetchEducations(currentQuery());
+            await fetchEducations();
         } catch (error) {
+            showFieldErrors(addForm, error.fieldErrors);
             showToast('Gagal menambahkan pendidikan', error.message, 'error');
         } finally {
             submitButton.disabled = false;
         }
     }
-    if (addForm) addForm.addEventListener('submit', addEducation);
+    if (addForm) {
+        addForm.addEventListener('submit', addEducation);
+        clearErrorOnInput(addForm);
+    }
 
     // ---------- Ubah (PATCH) — editor & pemilik ----------
     function openEditModal(id) {
         const edu = educationById.get(String(id));
         if (!edu || !editForm) return;
         editForm.dataset.id = id;
+        clearFieldErrors(editForm); // sisa error dari edit sebelumnya jangan ikut tampil
         // Isi form dengan data lama. .value pada input aman dari XSS (tidak di-parse sebagai HTML).
         EDUCATION_FIELDS.forEach(name => {
             editForm.elements[name].value = edu[name] ?? '';
@@ -244,14 +324,18 @@
             await sendWriteRequest(buildUrl(DETAIL_URL, editForm.dataset.id), 'PATCH', formToPayload(editForm));
             editModal.hidePopover();
             showToast('Berhasil', 'Riwayat pendidikan berhasil diperbarui.', 'success');
-            await fetchEducations(currentQuery());
+            await fetchEducations();
         } catch (error) {
+            showFieldErrors(editForm, error.fieldErrors);
             showToast('Gagal memperbarui pendidikan', error.message, 'error');
         } finally {
             submitButton.disabled = false;
         }
     }
-    if (editForm) editForm.addEventListener('submit', updateEducation);
+    if (editForm) {
+        editForm.addEventListener('submit', updateEducation);
+        clearErrorOnInput(editForm);
+    }
 
     // ---------- Hapus (DELETE) — hanya pemilik ----------
     function openDeleteModal(id) {
@@ -270,7 +354,7 @@
             await sendWriteRequest(buildUrl(DETAIL_URL, pendingDeleteId), 'DELETE');
             deleteModal.hidePopover();
             showToast('Berhasil', 'Riwayat pendidikan dihapus.', 'success');
-            await fetchEducations(currentQuery());
+            await fetchEducations();
         } catch (error) {
             showToast('Gagal menghapus pendidikan', error.message, 'error');
         } finally {
@@ -284,9 +368,12 @@
     async function toggleStar(button) {
         button.disabled = true; // star = toggle, klik ganda akan membatalkan dirinya sendiri
         try {
-            const result = await sendWriteRequest(buildUrl(STAR_URL, button.dataset.id), 'POST');
-            showToast('Berhasil', result.is_starred ? 'Star diberikan.' : 'Star dibatalkan.', 'success');
-            await fetchEducations(currentQuery());
+            const updated = await sendWriteRequest(buildUrl(STAR_URL, button.dataset.id), 'POST');
+            // Fitur ekstra: API membalas data terbaru, jadi cukup ganti SATU kartu ini
+            // (tidak perlu GET seluruh daftar lagi -> lebih cepat & posisi scroll tidak berubah)
+            educationById.set(String(updated.id), updated);
+            button.closest('.timeline-item').replaceWith(buildTimelineItem(updated));
+            showToast('Berhasil', updated.is_starred ? 'Star diberikan.' : 'Star dibatalkan.', 'success');
         } catch (error) {
             showToast('Gagal memperbarui star', error.message, 'error');
             button.disabled = false;

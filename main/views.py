@@ -15,6 +15,7 @@ from main.forms import EducationForm, ProjectForm
 from main.models import Education, Experience, Project
 from main.roles import can_edit
 from django.db.models import Q
+from main.serializers import EducationQuerySerializer
 
 def show_main(request):
     # .get() dengan nilai default supaya tidak KeyError kalau cookie belum ada
@@ -28,9 +29,14 @@ def show_main(request):
             "now a familiar (and slightly dreaded) face among Fasilkom "
             "students as a teaching assistant across several courses."
         ),
-               # Tugas 5: data pendidikan tidak dikirim lagi dari sini, tapi diambil JavaScript
-        # lewat /api/education/. View ini cukup mengirim kerangka halaman + form kosong untuk modal.
+        # Tugas 6: data pendidikan diambil JavaScript lewat API DRF /api/v1/education/.
+        # View ini cukup mengirim kerangka halaman + form kosong untuk modal tambah & edit.
         "education_form": EducationForm(),
+        # auto_id berbeda supaya id input modal edit (edit_institution, ...) tidak bentrok dengan modal tambah
+        "education_edit_form": EducationForm(auto_id="edit_%s"),
+                # Fitur ekstra: pilihan dropdown filter jenjang & urutan (sumbernya sama dengan validasi API)
+        "level_choices": Education.LEVEL_CHOICES,
+        "ordering_choices": EducationQuerySerializer.ORDERING_CHOICES,
         "last_login": last_login,
     }
     return render(request, "index.html", context)
