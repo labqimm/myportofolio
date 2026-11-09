@@ -19,6 +19,19 @@ class ProjectSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id"]
 
+                # Pesan bawaan DRF berbahasa Inggris; diganti supaya toast di halaman mudah dipahami
+        extra_kwargs = {
+            "institution": {"error_messages": {
+                "blank": "Nama institusi wajib diisi.", "required": "Nama institusi wajib diisi.",
+            }},
+            "level": {"error_messages": {"invalid_choice": "Jenjang \"{input}\" tidak tersedia."}},
+            "start_year": {"error_messages": {
+                "invalid": "Tahun masuk harus berupa angka.", "required": "Tahun masuk wajib diisi.",
+                "null": "Tahun masuk wajib diisi.",
+            }},
+            "end_year": {"error_messages": {"invalid": "Tahun lulus harus berupa angka."}},
+        }
+
     # validate_<field> = padanan clean_<field> di ProjectForm (serializer TIDAK menjalankan form)
     def validate_title(self, value):
         value = strip_tags(value).strip()
@@ -93,3 +106,28 @@ class EducationSerializer(serializers.ModelSerializer):
 
     def get_starred_by_names(self, obj):
         return ", ".join(user.username for user in obj.starred_by.all())
+
+
+class EducationQuerySerializer(serializers.Serializer):
+    """Fitur ekstra Tugas 6: memvalidasi parameter query endpoint daftar Education.
+
+    Contoh: /api/v1/education/?q=indonesia&level=s1&ordering=-start_year
+    Nilai yang tidak dikenal (mis. level=s9) ditolak dengan 400, sama seperti input POST.
+    """
+
+    ORDERING_CHOICES = [
+        ("-start_year", "Terbaru"),
+        ("start_year", "Terlama"),
+        ("institution", "Nama A-Z"),
+        ("-institution", "Nama Z-A"),
+    ]
+
+    q = serializers.CharField(required=False, allow_blank=True, default="")
+    level = serializers.ChoiceField(
+        choices=Education.LEVEL_CHOICES, required=False, allow_blank=True, default="",
+        error_messages={"invalid_choice": "Jenjang \"{input}\" tidak tersedia."},
+    )
+    ordering = serializers.ChoiceField(
+        choices=ORDERING_CHOICES, required=False, allow_blank=True, default="-start_year",
+        error_messages={"invalid_choice": "Urutan \"{input}\" tidak tersedia."},
+    )

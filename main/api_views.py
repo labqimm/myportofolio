@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from main.models import Education, Project
 from main.permissions import IsPortfolioOwnerOrEditorOrReadOnly, IsPortfolioOwnerOrReadOnly
-from main.serializers import EducationSerializer, ProjectSerializer
+from main.serializers import EducationQuerySerializer, EducationSerializer, ProjectSerializer
 
 
 # ======================== PROJECTS ========================
@@ -77,12 +77,20 @@ def project_star(request, project_id):
 @permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def education_list(request):
     if request.method in ("GET", "HEAD"):
-        educations = Education.objects.prefetch_related("starred_by").order_by("-start_year", "id")
-        query = request.query_params.get("q", "").strip()
-        if query:
+        # Parameter query divalidasi serializer juga (bukan di view) -> nilai aneh langsung 400
+        params = EducationQuerySerializer(data=request.query_params)
+        params.is_valid(raise_exception=True)
+        filters = params.validated_data
+
+        educations = Education.objects.prefetch_related("starred_by")
+        if filters["q"]:
             educations = educations.filter(
-                Q(institution__icontains=query) | Q(major__icontains=query)
+                Q(institution__icontains=filters["q"]) | Q(major__icontains=filters["q"])
             )
+        if filters["level"]:
+            educations = educations.filter(level=filters["level"])
+        # "id" sebagai urutan kedua supaya hasilnya stabil kalau nilainya sama
+        educations = educations.order_by(filters["ordering"] or "-start_year", "id")
         serializer = EducationSerializer(educations, many=True, context={"request": request})
         return Response(serializer.data)
 
@@ -90,7 +98,6 @@ def education_list(request):
     serializer.is_valid(raise_exception=True)
     serializer.save()
     return Response(serializer.data, status=status.HTTP_201_CREATED)
-
 
 @api_view(["GET", "HEAD", "PUT", "PATCH", "DELETE"])
 @authentication_classes([SessionAuthentication])
