@@ -51,3 +51,17 @@ function formatServerErrors(result, status) {
     }
     return (result && result.message) || `Terjadi kesalahan (status ${status}).`;
 }
+/**
+ * Tugas 6: mengubah balasan error Django REST Framework menjadi satu kalimat untuk toast.
+ * Bentuk error DRF:
+ *   400 validasi -> { "end_year": ["Tahun lulus tidak boleh sebelum tahun masuk."] }
+ *   403/404      -> { "detail": "Authentication credentials were not provided." }
+ * @param {object} data isi JSON balasan server
+ * @param {number} status kode status HTTP (untuk pesan cadangan)
+ * @returns {string}
+ */
+function formatApiErrors(data, status) {
+    // Ambil semua pesan (string) dari setiap field lalu gabungkan jadi satu kalimat
+    const messages = Object.values(data || {}).flat().filter(value => typeof value === 'string');
+    return messages.join(' ') || `Terjadi kesalahan (status ${status}).`;
+}

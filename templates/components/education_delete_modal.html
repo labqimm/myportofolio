@@ -1,4 +1,5 @@
-{# Satu modal hapus untuk semua item. JavaScript mengisi nama institusi & action form sebelum modal dibuka. #}
+{# Satu modal hapus untuk semua item. Tugas 6: tombol "Ya, Hapus" tidak lagi submit form, #}
+{# tetapi ditangani JavaScript yang mengirim DELETE ke /api/v1/education/<id>/. #}
 <div id="delete-education-modal" class="project-delete-modal" popover="auto">
     <button type="button" class="project-delete-modal__backdrop"
         popovertarget="delete-education-modal" popovertargetaction="hide"></button>
@@ -8,10 +9,7 @@
         <div class="project-delete-modal__actions">
             <button type="button" class="button button-secondary"
                 popovertarget="delete-education-modal" popovertargetaction="hide">Batal</button>
-            <form id="delete-education-form" method="post" action="">
-                {% csrf_token %}
-                <button type="submit" class="button button-danger">Ya, Hapus</button>
-            </form>
+            <button type="button" id="confirm-delete-education" class="button button-danger">Ya, Hapus</button>
         </div>
     </div>
 </div>

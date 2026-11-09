@@ -1,0 +1,27 @@
+{# Tugas 6: modal edit pendidikan untuk Editor & pemilik. Data lama diisi JavaScript, lalu dikirim lewat PATCH ke API. #}
+<div id="edit-education-modal" class="project-form-modal" popover="auto"
+    role="dialog" aria-modal="true" aria-labelledby="edit-education-modal-title">
+    <button type="button" class="project-form-modal__backdrop"
+        popovertarget="edit-education-modal" popovertargetaction="hide"
+        aria-label="Tutup form edit pendidikan"></button>
+    <div class="project-form-modal__content">
+        <button type="button" class="project-form-modal__close"
+            popovertarget="edit-education-modal" popovertargetaction="hide"
+            aria-label="Tutup form edit pendidikan">&times;</button>
+        <h2 id="edit-education-modal-title">Edit Riwayat Pendidikan</h2>
+        {# education_edit_form memakai auto_id="edit_%s" supaya id input tidak bentrok dengan modal tambah #}
+        <form id="edit-education-form" class="project-form" novalidate>
+            {% for field in education_edit_form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+            </div>
+            {% endfor %}
+            <div class="project-form-modal__actions">
+                <button type="button" class="button button-secondary"
+                    popovertarget="edit-education-modal" popovertargetaction="hide">Batal</button>
+                <button type="submit" class="button">Simpan Perubahan</button>
+            </div>
+        </form>
+    </div>
+</div>
