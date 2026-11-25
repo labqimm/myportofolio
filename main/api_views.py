@@ -1,10 +1,7 @@
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.authentication import SessionAuthentication
-from rest_framework.decorators import (
-    api_view, authentication_classes, permission_classes,
-)
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -13,10 +10,28 @@ from main.permissions import IsPortfolioOwnerOrEditorOrReadOnly, IsPortfolioOwne
 from main.serializers import EducationQuerySerializer, EducationSerializer, ProjectSerializer
 
 
+# Tutorial 10: decorator @authentication_classes([SessionAuthentication]) dihapus dari
+# semua view, supaya REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] di settings.py
+# (TokenAuthentication lalu SessionAuthentication) berlaku. Kalau decorator lama dibiarkan,
+# header "Authorization: Token <key>" dari Flutter diabaikan dan POST ditolak 403.
+
+
+# ======================== AUTH (Tutorial 10) ========================
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def api_logout(request):
+    """Mencabut token milik pemanggil. Login-nya memakai obtain_auth_token bawaan DRF."""
+    # request.auth berisi objek Token kalau user masuk lewat TokenAuthentication,
+    # dan None kalau lewat SessionAuthentication (browser) -> tidak ada yang dihapus.
+    if request.auth is not None:
+        request.auth.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 # ======================== PROJECTS ========================
 
 @api_view(["GET", "HEAD", "POST"])
-@authentication_classes([SessionAuthentication])
 @permission_classes([IsPortfolioOwnerOrReadOnly])
 def project_list(request):
     if request.method in ("GET", "HEAD"):
@@ -34,7 +49,6 @@ def project_list(request):
 
 
 @api_view(["GET", "HEAD", "PUT", "PATCH", "DELETE"])
-@authentication_classes([SessionAuthentication])
 @permission_classes([IsPortfolioOwnerOrReadOnly])
 def project_detail(request, project_id):
     project = get_object_or_404(
@@ -58,7 +72,6 @@ def project_detail(request, project_id):
 
 
 @api_view(["POST"])
-@authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def project_star(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
@@ -73,7 +86,6 @@ def project_star(request, project_id):
 # ============ EDUCATION (bagian pilihan tugas, peran Editor) ============
 
 @api_view(["GET", "HEAD", "POST"])
-@authentication_classes([SessionAuthentication])
 @permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def education_list(request):
     if request.method in ("GET", "HEAD"):
@@ -100,7 +112,6 @@ def education_list(request):
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 @api_view(["GET", "HEAD", "PUT", "PATCH", "DELETE"])
-@authentication_classes([SessionAuthentication])
 @permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def education_detail(request, education_id):
     education = get_object_or_404(
@@ -124,7 +135,6 @@ def education_detail(request, education_id):
 
 
 @api_view(["POST"])
-@authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def education_star(request, education_id):
     education = get_object_or_404(Education, pk=education_id)
