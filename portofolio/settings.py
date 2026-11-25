@@ -30,7 +30,12 @@ SECRET_KEY = 'django-insecure-np!$o&(yyh_d+saz01(zb4nrcw%p=h1338fp17b7b)^cpwzqxa
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = not PRODUCTION
-ALLOWED_HOSTS = ["localhost", "127.0.0.1","muhammad-iqbal517-myportofolio.pws.cs.ui.ac.id"]
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "10.0.2.2",  # alamat komputer host dilihat dari emulator Android
+    "muhammad-iqbal517-myportofolio.pws.cs.ui.ac.id",
+]
 CSRF_TRUSTED_ORIGINS = ["https://muhammad-iqbal517-myportofolio.pws.cs.ui.ac.id"]
 
 
@@ -45,13 +50,16 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'main',
     'contacts',
+    'corsheaders',
     'rest_framework',
+    'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # wajib sebelum CommonMiddleware
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -157,3 +165,24 @@ MAILERS = {
 # Tipe primary key default untuk model tanpa field id eksplisit (Project, Education).
 # AutoField dipakai agar sama dengan migrasi yang sudah ada dan tidak memicu migrasi baru.
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
+
+# ===================== Tutorial 10: DRF token + CORS =====================
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        # Token dulu: request tanpa kredensial dari Flutter dapat 401 (bukan 403)
+        "rest_framework.authentication.TokenAuthentication",
+        # Session tetap aktif untuk halaman web (fetch + cookie + CSRF)
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+}
+
+# Lokal (PRODUCTION=False): izinkan semua origin agar Flutter Web di Chrome bisa memanggil API.
+# Production: hanya origin yang ditulis di env CORS_ALLOWED_ORIGINS (pisahkan dengan koma).
+CORS_ALLOW_ALL_ORIGINS = not PRODUCTION
+if PRODUCTION:
+    CORS_ALLOWED_ORIGINS = [
+        origin.strip()
+        for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+        if origin.strip()
+    ]
